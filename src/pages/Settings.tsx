@@ -1,5 +1,5 @@
-
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, Bell, Shield, Lock, Globe, Info, Moon, Sun, Zap } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -35,6 +35,7 @@ const apps = [
 
 export default function Settings() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [settings, setSettings] = useState(defaultSettings);
   const [excludedApps, setExcludedApps] = useState<string[]>([]);
@@ -82,6 +83,9 @@ export default function Settings() {
       title: "Settings Reset",
       description: "All settings have been reset to their default values",
     });
+    
+    // Navigate to home screen after reset
+    navigate('/home');
   };
 
   const handleSaveSettings = () => {
@@ -90,6 +94,9 @@ export default function Settings() {
       title: "Settings Saved",
       description: "Your settings have been saved successfully",
     });
+    
+    // Navigate to home screen after save
+    navigate('/home');
   };
   
   return (
