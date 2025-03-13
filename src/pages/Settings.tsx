@@ -6,23 +6,38 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useIsMobile } from '@/hooks/use-mobile';
 import Layout from '@/components/layout/Layout';
 import FadeIn from '@/components/animations/FadeIn';
 import { useToast } from '@/hooks/use-toast';
 
+// Default settings
+const defaultSettings = {
+  killSwitch: true,
+  autoConnect: false,
+  notifications: true,
+  analytics: false,
+  theme: 'system',
+  splitTunneling: false,
+  ipv6Protection: true,
+  dnsLeakProtection: true,
+};
+
+// Mock apps for split tunneling
+const apps = [
+  { id: 'chrome', name: 'Google Chrome', icon: '🌐' },
+  { id: 'spotify', name: 'Spotify', icon: '🎵' },
+  { id: 'netflix', name: 'Netflix', icon: '🎬' },
+  { id: 'slack', name: 'Slack', icon: '💬' },
+  { id: 'zoom', name: 'Zoom', icon: '📹' },
+];
+
 export default function Settings() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    killSwitch: true,
-    autoConnect: false,
-    notifications: true,
-    analytics: false,
-    theme: 'system',
-    protocol: 'wireguard',
-    splitTunneling: false,
-    ipv6Protection: true,
-    dnsLeakProtection: true,
-  });
+  const isMobile = useIsMobile();
+  const [settings, setSettings] = useState(defaultSettings);
+  const [excludedApps, setExcludedApps] = useState<string[]>([]);
   
   const handleToggle = (key: string) => {
     setSettings(prev => {
@@ -47,6 +62,33 @@ export default function Settings() {
       });
       
       return newSettings;
+    });
+  };
+
+  const handleAppToggle = (appId: string) => {
+    setExcludedApps(prev => {
+      if (prev.includes(appId)) {
+        return prev.filter(id => id !== appId);
+      } else {
+        return [...prev, appId];
+      }
+    });
+  };
+
+  const handleResetSettings = () => {
+    setSettings(defaultSettings);
+    setExcludedApps([]);
+    toast({
+      title: "Settings Reset",
+      description: "All settings have been reset to their default values",
+    });
+  };
+
+  const handleSaveSettings = () => {
+    // Here you would typically save to localStorage or a backend
+    toast({
+      title: "Settings Saved",
+      description: "Your settings have been saved successfully",
     });
   };
   
@@ -114,35 +156,6 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="bg-vpn-blue/10 p-2 rounded-lg">
-                      <Lock className="w-5 h-5 text-vpn-blue" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Protocol</p>
-                      <p className="text-sm text-gray-500">Choose connection protocol</p>
-                    </div>
-                  </div>
-                  
-                  <RadioGroup 
-                    value={settings.protocol}
-                    onValueChange={(value) => handleRadioChange('protocol', value)}
-                    className="flex space-x-4"
-                  >
-                    <div className="flex items-center space-x-1">
-                      <RadioGroupItem value="wireguard" id="wireguard" />
-                      <Label htmlFor="wireguard">WireGuard</Label>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <RadioGroupItem value="openvpn" id="openvpn" />
-                      <Label htmlFor="openvpn">OpenVPN</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-vpn-blue/10 p-2 rounded-lg">
                       <Globe className="w-5 h-5 text-vpn-blue" />
                     </div>
                     <div>
@@ -157,6 +170,25 @@ export default function Settings() {
                     onCheckedChange={() => handleToggle('splitTunneling')}
                   />
                 </div>
+
+                {settings.splitTunneling && (
+                  <div className="mt-3 pl-10 space-y-3 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
+                    <p className="text-sm font-medium">Select apps to exclude from VPN:</p>
+                    {apps.map((app) => (
+                      <div key={app.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`app-${app.id}`} 
+                          checked={excludedApps.includes(app.id)}
+                          onCheckedChange={() => handleAppToggle(app.id)}
+                        />
+                        <Label htmlFor={`app-${app.id}`} className="flex items-center space-x-2 cursor-pointer">
+                          <span>{app.icon}</span>
+                          <span>{app.name}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </FadeIn>
@@ -212,7 +244,7 @@ export default function Settings() {
               <h2 className="text-xl font-semibold mb-4">Appearance</h2>
               
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="bg-vpn-blue/10 p-2 rounded-lg">
                       <Moon className="w-5 h-5 text-vpn-blue" />
@@ -226,7 +258,7 @@ export default function Settings() {
                   <RadioGroup 
                     value={settings.theme}
                     onValueChange={(value) => handleRadioChange('theme', value)}
-                    className="flex space-x-4"
+                    className={isMobile ? "flex flex-col space-y-2" : "flex space-x-4"}
                   >
                     <div className="flex items-center space-x-1">
                       <RadioGroupItem value="light" id="light" />
@@ -292,10 +324,10 @@ export default function Settings() {
           
           <FadeIn delay={400}>
             <div className="flex justify-between space-x-4 mb-20">
-              <Button variant="outline" className="flex-1">
+              <Button variant="outline" className="flex-1" onClick={handleResetSettings}>
                 Reset Settings
               </Button>
-              <Button className="flex-1">
+              <Button className="flex-1" onClick={handleSaveSettings}>
                 Save Changes
               </Button>
             </div>
