@@ -1,5 +1,5 @@
 
-import { Globe, MapPin } from 'lucide-react';
+import { Globe, MapPin, Zap } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ServerList from '@/components/vpn/ServerList';
 import FadeIn from '@/components/animations/FadeIn';
@@ -37,10 +37,21 @@ export default function ServerSelection() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="absolute animate-pulse">
                     <div className="relative">
-                      <MapPin className="w-8 h-8 text-vpn-blue" />
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -translate-y-1 bg-vpn-blue text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                        {vpnState.selectedServer.name}
-                      </div>
+                      {vpnState.selectedServer.isSmartServer ? (
+                        <div className="flex flex-col items-center">
+                          <Zap className="w-8 h-8 text-vpn-blue" />
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -translate-y-1 bg-vpn-blue text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                            Smart Server
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <MapPin className="w-8 h-8 text-vpn-blue" />
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 -translate-y-1 bg-vpn-blue text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                            {vpnState.selectedServer.name}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

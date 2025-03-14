@@ -54,8 +54,10 @@ export default function Home() {
       toast({
         title: "Connecting...",
         description: vpnState.selectedServer 
-          ? `Connecting to ${vpnState.selectedServer.name}` 
-          : `Connecting to fastest server`,
+          ? vpnState.selectedServer.isSmartServer
+            ? "Connecting to the best available server"
+            : `Connecting to ${vpnState.selectedServer.name}` 
+          : "Connecting to fastest server",
       });
       
       // Connect and show connected toast on success
@@ -63,8 +65,10 @@ export default function Home() {
         toast({
           title: "Connected",
           description: vpnState.selectedServer 
-            ? `Connected to ${vpnState.selectedServer.name}` 
-            : `Connected to fastest server`,
+            ? vpnState.selectedServer.isSmartServer
+              ? "Connected to the best available server"
+              : `Connected to ${vpnState.selectedServer.name}` 
+            : "Connected to fastest server",
         });
         
         // Set first connection attempt to false to prevent UI sync issues
@@ -126,7 +130,9 @@ export default function Home() {
               </h2>
               <p className="text-gray-500">
                 {vpnState.status === 'connected' 
-                  ? `Secure connection to ${vpnState.selectedServer?.name || 'Fastest Server'}` 
+                  ? vpnState.selectedServer?.isSmartServer
+                    ? 'Secure connection to Smart Server'
+                    : `Secure connection to ${vpnState.selectedServer?.name || 'Fastest Server'}`
                   : vpnState.status === 'connecting' 
                   ? 'Establishing secure connection...' 
                   : 'Your connection is not protected'}
@@ -154,7 +160,11 @@ export default function Home() {
                   vpnState.status === 'connected' ? "bg-green-500" : 
                   vpnState.status === 'connecting' ? "bg-yellow-500 animate-pulse" : "bg-gray-300"
                 )}></div>
-                Server: {vpnState.selectedServer.name}
+                Server: {
+                  vpnState.selectedServer.isSmartServer 
+                    ? 'Smart Server (Auto-Optimized)' 
+                    : vpnState.selectedServer.name
+                }
               </div>
             )}
           </div>

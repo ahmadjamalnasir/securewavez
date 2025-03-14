@@ -1,12 +1,12 @@
 
 import { useState } from 'react';
 import { useVpn, Server } from '@/context/VpnContext';
-import { Check, Search, Signal, Lock } from 'lucide-react';
+import { Check, Search, Signal, Lock, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FadeIn from '@/components/animations/FadeIn';
 
 export default function ServerList() {
-  const { servers, selectServer, vpnState } = useVpn();
+  const { servers, selectServer, vpnState, smartServer } = useVpn();
   const [searchQuery, setSearchQuery] = useState('');
   
   // Filter servers based on search query
@@ -16,7 +16,7 @@ export default function ServerList() {
     server.city.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Group servers by country
+  // Only group regular servers by country (not the smart server)
   const groupedServers = filteredServers.reduce((acc, server) => {
     if (!acc[server.country]) {
       acc[server.country] = [];
@@ -24,6 +24,11 @@ export default function ServerList() {
     acc[server.country].push(server);
     return acc;
   }, {} as Record<string, Server[]>);
+  
+  // Should we show Smart Server in the list
+  const showSmartServer = !searchQuery || 
+    'smart server'.includes(searchQuery.toLowerCase()) || 
+    'auto select'.includes(searchQuery.toLowerCase());
   
   // Function to get ping indicator color
   const getPingColor = (ping: number) => {
@@ -38,6 +43,66 @@ export default function ServerList() {
     if (load < 70) return { text: 'Medium', color: 'text-yellow-500' };
     return { text: 'High', color: 'text-red-500' };
   };
+
+  // Render a server card
+  const renderServerCard = (server: Server) => (
+    <div 
+      key={server.id}
+      className={cn(
+        "p-3 rounded-xl border transition-all duration-200 cursor-pointer",
+        vpnState.selectedServer?.id === server.id 
+          ? "border-vpn-blue bg-vpn-blue/5" 
+          : "border-gray-200 dark:border-gray-800 hover:border-vpn-blue/50"
+      )}
+      onClick={() => selectServer(server)}
+    >
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg font-medium text-xs">
+            {server.isSmartServer ? <Zap className="w-5 h-5 text-vpn-blue" /> : server.countryCode}
+          </div>
+          
+          <div>
+            <p className="font-medium">{server.name}</p>
+            <p className="text-xs text-gray-500">
+              {server.isSmartServer 
+                ? 'Automatically selects best server' 
+                : server.city}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {server.premium && (
+            <div className="bg-yellow-100 p-1 rounded">
+              <Lock className="w-4 h-4 text-yellow-600" />
+            </div>
+          )}
+          
+          {vpnState.selectedServer?.id === server.id && (
+            <div className="w-5 h-5 flex items-center justify-center bg-vpn-blue rounded-full">
+              <Check className="w-3 h-3 text-white" />
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center mt-2 text-xs">
+        <div className="flex items-center space-x-1">
+          <Signal className="w-3 h-3 text-gray-500" />
+          <span>{server.ping} ms</span>
+          <span className={cn("w-2 h-2 rounded-full", getPingColor(server.ping))}></span>
+        </div>
+        
+        <div className={cn(
+          "font-medium",
+          server.isSmartServer ? "text-vpn-blue" : getLoadIndicator(server.load).color
+        )}>
+          {server.isSmartServer ? 'Optimized' : `${getLoadIndicator(server.load).text} Load`}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="vpn-card">
@@ -55,68 +120,24 @@ export default function ServerList() {
       </div>
       
       <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-2 pb-2">
+        {/* Smart Server at the top */}
+        {showSmartServer && (
+          <FadeIn delay={0} className="space-y-1.5">
+            <h3 className="font-medium text-sm text-gray-500 px-1">Recommended</h3>
+            {renderServerCard(smartServer)}
+          </FadeIn>
+        )}
+        
+        {/* Regular servers grouped by country */}
         {Object.entries(groupedServers).map(([country, countryServers], index) => (
-          <FadeIn key={country} delay={index * 100} className="space-y-1.5">
+          <FadeIn key={country} delay={(index + 1) * 100} className="space-y-1.5">
             <h3 className="font-medium text-sm text-gray-500 px-1">{country}</h3>
             
-            {countryServers.map((server) => (
-              <div 
-                key={server.id}
-                className={cn(
-                  "p-3 rounded-xl border transition-all duration-200 cursor-pointer",
-                  vpnState.selectedServer?.id === server.id 
-                    ? "border-vpn-blue bg-vpn-blue/5" 
-                    : "border-gray-200 dark:border-gray-800 hover:border-vpn-blue/50"
-                )}
-                onClick={() => selectServer(server)}
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg font-medium text-xs">
-                      {server.countryCode}
-                    </div>
-                    
-                    <div>
-                      <p className="font-medium">{server.name}</p>
-                      <p className="text-xs text-gray-500">{server.city}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    {server.premium && (
-                      <div className="bg-yellow-100 p-1 rounded">
-                        <Lock className="w-4 h-4 text-yellow-600" />
-                      </div>
-                    )}
-                    
-                    {vpnState.selectedServer?.id === server.id && (
-                      <div className="w-5 h-5 flex items-center justify-center bg-vpn-blue rounded-full">
-                        <Check className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center mt-2 text-xs">
-                  <div className="flex items-center space-x-1">
-                    <Signal className="w-3 h-3 text-gray-500" />
-                    <span>{server.ping} ms</span>
-                    <span className={cn("w-2 h-2 rounded-full", getPingColor(server.ping))}></span>
-                  </div>
-                  
-                  <div className={cn(
-                    "font-medium",
-                    getLoadIndicator(server.load).color
-                  )}>
-                    {getLoadIndicator(server.load).text} Load
-                  </div>
-                </div>
-              </div>
-            ))}
+            {countryServers.map(renderServerCard)}
           </FadeIn>
         ))}
         
-        {filteredServers.length === 0 && (
+        {filteredServers.length === 0 && !showSmartServer && (
           <div className="text-center py-8">
             <p className="text-gray-500">No servers found matching your search.</p>
           </div>

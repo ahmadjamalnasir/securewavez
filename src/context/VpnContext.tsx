@@ -23,6 +23,7 @@ export interface Server {
   ping: number;
   load: number;
   premium: boolean;
+  isSmartServer?: boolean;
 }
 
 // Context interface
@@ -33,6 +34,7 @@ interface VpnContextType {
   disconnect: (onSuccess?: () => void) => void;
   selectServer: (server: Server) => void;
   isLoading: boolean;
+  smartServer: Server;
 }
 
 // Create context with default values
@@ -137,22 +139,58 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [servers, setServers] = useState<Server[]>(sampleServers);
   const [connectionInterval, setConnectionInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // Create a Smart Server based on the best performing server
+  const getBestServer = (): Server => {
+    // Create a scoring system (lower is better)
+    // Score = ping * 0.7 + load * 0.3
+    const scoredServers = servers.map(server => ({
+      ...server,
+      score: server.ping * 0.7 + server.load * 0.3
+    }));
+    
+    // Sort by score and get the best one
+    const bestServer = [...scoredServers].sort((a, b) => a.score - b.score)[0];
+    
+    return {
+      id: 'smart',
+      name: 'Smart Server',
+      country: 'Auto Select',
+      countryCode: 'AUTO',
+      city: bestServer.city,
+      ping: bestServer.ping,
+      load: bestServer.load,
+      premium: false,
+      isSmartServer: true
+    };
+  };
+
+  // Initialize the smart server
+  const [smartServer, setSmartServer] = useState<Server>(getBestServer());
+
+  // Update the smart server whenever servers data changes
+  useEffect(() => {
+    setSmartServer(getBestServer());
+  }, [servers]);
+
   // Simulate loading initial data
   useEffect(() => {
     const timer = setTimeout(() => {
+      // Set Smart Server as default selected server
+      setVpnState(prev => ({
+        ...prev,
+        selectedServer: smartServer
+      }));
       setIsLoading(false);
     }, 1500);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [smartServer]);
 
   // Function to connect to VPN
   const connect = (onSuccess?: () => void) => {
-    // If no server is selected, use the first one or the fastest one
+    // If no server is selected, use the smart server
     if (!vpnState.selectedServer) {
-      // Sort by ping and select the lowest ping server
-      const sortedServers = [...servers].sort((a, b) => a.ping - b.ping);
-      selectServer(sortedServers[0]);
+      selectServer(smartServer);
       return;
     }
     
@@ -237,7 +275,8 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     connect,
     disconnect,
     selectServer,
-    isLoading
+    isLoading,
+    smartServer
   };
   
   return <VpnContext.Provider value={value}>{children}</VpnContext.Provider>;
