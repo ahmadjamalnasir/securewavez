@@ -29,8 +29,8 @@ export interface Server {
 interface VpnContextType {
   vpnState: VpnState;
   servers: Server[];
-  connect: () => void;
-  disconnect: () => void;
+  connect: (onSuccess?: () => void) => void;
+  disconnect: (onSuccess?: () => void) => void;
   selectServer: (server: Server) => void;
   isLoading: boolean;
 }
@@ -147,7 +147,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // Function to connect to VPN
-  const connect = () => {
+  const connect = (onSuccess?: () => void) => {
     // If no server is selected, use the first one or the fastest one
     if (!vpnState.selectedServer) {
       // Sort by ping and select the lowest ping server
@@ -180,11 +180,16 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }, 3000);
       
       setConnectionInterval(interval);
+      
+      // Call the onSuccess callback only when connection is successful
+      if (onSuccess) {
+        onSuccess();
+      }
     }, 2000);
   };
   
   // Function to disconnect from VPN
-  const disconnect = () => {
+  const disconnect = (onSuccess?: () => void) => {
     if (connectionInterval) {
       clearInterval(connectionInterval);
       setConnectionInterval(null);
@@ -197,6 +202,11 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       uploadSpeed: 0,
       connectionTime: 0
     }));
+    
+    // Call the onSuccess callback
+    if (onSuccess) {
+      onSuccess();
+    }
   };
   
   // Function to select a server

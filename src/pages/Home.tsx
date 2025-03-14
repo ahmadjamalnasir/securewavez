@@ -13,6 +13,7 @@ export default function Home() {
   const { vpnState, connect, disconnect, isLoading } = useVpn();
   const { toast } = useToast();
   const [showLocationToast, setShowLocationToast] = useState(false);
+  const [isFirstConnectionAttempt, setIsFirstConnectionAttempt] = useState(true);
 
   // Show toast suggesting to change location if no server is selected
   useEffect(() => {
@@ -32,21 +33,42 @@ export default function Home() {
     }
   }, [vpnState.status, vpnState.selectedServer, isLoading, toast, showLocationToast]);
 
+  // Reset first connection attempt flag when disconnected
+  useEffect(() => {
+    if (vpnState.status === 'disconnected') {
+      setIsFirstConnectionAttempt(true);
+    }
+  }, [vpnState.status]);
+
+  // Handle the connection/disconnection and show appropriate toast messages
   const handleConnectToggle = () => {
     if (vpnState.status === 'connected') {
-      disconnect();
-      toast({
-        title: "Disconnected",
-        description: "VPN connection terminated",
+      disconnect(() => {
+        toast({
+          title: "Disconnected",
+          description: "VPN connection terminated",
+        });
       });
-    } else {
-      // First change status to connecting, then connect
-      connect();
+    } else if (vpnState.status === 'disconnected') {
+      // Show connecting toast immediately
       toast({
-        title: vpnState.status === 'connecting' ? "Connecting..." : "Connected",
+        title: "Connecting...",
         description: vpnState.selectedServer 
-          ? `${vpnState.status === 'connecting' ? 'Connecting to' : 'Connected to'} ${vpnState.selectedServer.name}` 
-          : `${vpnState.status === 'connecting' ? 'Connecting to' : 'Connected to'} fastest server`,
+          ? `Connecting to ${vpnState.selectedServer.name}` 
+          : `Connecting to fastest server`,
+      });
+      
+      // Connect and show connected toast on success
+      connect(() => {
+        toast({
+          title: "Connected",
+          description: vpnState.selectedServer 
+            ? `Connected to ${vpnState.selectedServer.name}` 
+            : `Connected to fastest server`,
+        });
+        
+        // Set first connection attempt to false to prevent UI sync issues
+        setIsFirstConnectionAttempt(false);
       });
     }
   };
