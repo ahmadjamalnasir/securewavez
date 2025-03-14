@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, Bell, Shield, Lock, Globe, Info, Moon, Sun, Zap } from 'lucide-react';
@@ -17,7 +18,6 @@ const defaultSettings = {
   killSwitch: true,
   autoConnect: false,
   notifications: true,
-  analytics: false,
   theme: 'system',
   splitTunneling: false,
   ipv6Protection: true,
@@ -294,7 +294,7 @@ export default function Settings() {
                       <Bell className="w-5 h-5 text-vpn-blue" />
                     </div>
                     <div>
-                      <Label htmlFor="notifications" className="font-medium">Notifications</Label>
+                      <Label htmlFor="notifications" className="font-medium">Connection Notifications</Label>
                       <p className="text-sm text-gray-500">Show connection notifications</p>
                     </div>
                   </div>
@@ -303,26 +303,6 @@ export default function Settings() {
                     id="notifications" 
                     checked={settings.notifications} 
                     onCheckedChange={() => handleToggle('notifications')}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-vpn-blue/10 p-2 rounded-lg">
-                      <Info className="w-5 h-5 text-vpn-blue" />
-                    </div>
-                    <div>
-                      <Label htmlFor="analytics" className="font-medium">Usage Analytics</Label>
-                      <p className="text-sm text-gray-500">Share anonymous usage data</p>
-                    </div>
-                  </div>
-                  
-                  <Switch 
-                    id="analytics" 
-                    checked={settings.analytics} 
-                    onCheckedChange={() => handleToggle('analytics')}
                   />
                 </div>
               </div>
