@@ -40,12 +40,13 @@ export default function Home() {
         description: "VPN connection terminated",
       });
     } else {
+      // First change status to connecting, then connect
       connect();
       toast({
-        title: "Connected",
+        title: vpnState.status === 'connecting' ? "Connecting..." : "Connected",
         description: vpnState.selectedServer 
-          ? `Connected to ${vpnState.selectedServer.name}` 
-          : "Connected to fastest server",
+          ? `${vpnState.status === 'connecting' ? 'Connecting to' : 'Connected to'} ${vpnState.selectedServer.name}` 
+          : `${vpnState.status === 'connecting' ? 'Connecting to' : 'Connected to'} fastest server`,
       });
     }
   };
@@ -111,7 +112,10 @@ export default function Home() {
             </div>
             
             <button 
-              className="vpn-connect-btn"
+              className={cn(
+                "vpn-connect-btn",
+                vpnState.status === 'connecting' && "opacity-50 cursor-not-allowed"
+              )}
               onClick={handleConnectToggle}
               disabled={vpnState.status === 'connecting'}
             >
@@ -123,7 +127,11 @@ export default function Home() {
             
             {vpnState.selectedServer && (
               <div className="mt-6 flex items-center justify-center text-sm text-gray-500">
-                <div className="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
+                <div className={cn(
+                  "w-3 h-3 rounded-full mr-2",
+                  vpnState.status === 'connected' ? "bg-green-500" : 
+                  vpnState.status === 'connecting' ? "bg-yellow-500 animate-pulse" : "bg-gray-300"
+                )}></div>
                 Server: {vpnState.selectedServer.name}
               </div>
             )}

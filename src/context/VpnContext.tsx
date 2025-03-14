@@ -156,6 +156,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
     
+    // First set status to connecting
     setVpnState(prev => ({ ...prev, status: 'connecting' }));
     
     // Simulate connection delay
@@ -205,7 +206,9 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // If already connected, reconnect to new server
     if (vpnState.status === 'connected') {
       disconnect();
-      setTimeout(connect, 500);
+      setTimeout(() => {
+        connect();
+      }, 500);
     }
   };
   
