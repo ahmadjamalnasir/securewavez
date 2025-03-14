@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, Bell, Shield, Lock, Globe, Info, Moon, Sun, Zap } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -40,9 +40,29 @@ export default function Settings() {
   const [settings, setSettings] = useState(defaultSettings);
   const [excludedApps, setExcludedApps] = useState<string[]>([]);
   
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('vpnSettings');
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+      }
+      
+      const savedExcludedApps = localStorage.getItem('vpnExcludedApps');
+      if (savedExcludedApps) {
+        setExcludedApps(JSON.parse(savedExcludedApps));
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  }, []);
+  
   const handleToggle = (key: string) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: !prev[key as keyof typeof prev] };
+      
+      // Save to localStorage immediately
+      localStorage.setItem('vpnSettings', JSON.stringify(newSettings));
       
       toast({
         title: "Setting Updated",
@@ -57,6 +77,9 @@ export default function Settings() {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
       
+      // Save to localStorage immediately
+      localStorage.setItem('vpnSettings', JSON.stringify(newSettings));
+      
       toast({
         title: "Setting Updated",
         description: `${key.charAt(0).toUpperCase() + key.slice(1)} is now set to ${value}`,
@@ -68,17 +91,25 @@ export default function Settings() {
 
   const handleAppToggle = (appId: string) => {
     setExcludedApps(prev => {
-      if (prev.includes(appId)) {
-        return prev.filter(id => id !== appId);
-      } else {
-        return [...prev, appId];
-      }
+      const newExcludedApps = prev.includes(appId)
+        ? prev.filter(id => id !== appId)
+        : [...prev, appId];
+      
+      // Save to localStorage immediately
+      localStorage.setItem('vpnExcludedApps', JSON.stringify(newExcludedApps));
+      
+      return newExcludedApps;
     });
   };
 
   const handleResetSettings = () => {
     setSettings(defaultSettings);
     setExcludedApps([]);
+    
+    // Clear localStorage
+    localStorage.setItem('vpnSettings', JSON.stringify(defaultSettings));
+    localStorage.setItem('vpnExcludedApps', JSON.stringify([]));
+    
     toast({
       title: "Settings Reset",
       description: "All settings have been reset to their default values",
@@ -89,7 +120,10 @@ export default function Settings() {
   };
 
   const handleSaveSettings = () => {
-    // Here you would typically save to localStorage or a backend
+    // Save to localStorage
+    localStorage.setItem('vpnSettings', JSON.stringify(settings));
+    localStorage.setItem('vpnExcludedApps', JSON.stringify(excludedApps));
+    
     toast({
       title: "Settings Saved",
       description: "Your settings have been saved successfully",

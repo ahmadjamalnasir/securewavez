@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from '@/hooks/use-toast';
 
 // Define the shape of our VPN state
 interface VpnState {
@@ -139,6 +140,31 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [servers, setServers] = useState<Server[]>(sampleServers);
   const [connectionInterval, setConnectionInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // Check notification settings from localStorage
+  const getNotificationSettings = (): boolean => {
+    try {
+      const settingsStr = localStorage.getItem('vpnSettings');
+      if (settingsStr) {
+        const settings = JSON.parse(settingsStr);
+        return settings.notifications;
+      }
+      return true; // Default to true if no settings found
+    } catch (error) {
+      console.error('Error retrieving notification settings:', error);
+      return true; // Default to true on error
+    }
+  };
+  
+  // Show notification only if enabled in settings
+  const showNotification = (title: string, description: string) => {
+    if (getNotificationSettings()) {
+      toast({
+        title,
+        description,
+      });
+    }
+  };
+
   // Create a Smart Server based on the best performing server
   const getBestServer = (): Server => {
     // Create a scoring system (lower is better)
@@ -219,6 +245,12 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       setConnectionInterval(interval);
       
+      // Show connection success notification if enabled
+      showNotification(
+        "Connected", 
+        `Successfully connected to ${vpnState.selectedServer?.name || 'VPN'}`
+      );
+      
       // Call the onSuccess callback only when connection is successful
       if (onSuccess) {
         onSuccess();
@@ -240,6 +272,12 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       uploadSpeed: 0,
       connectionTime: 0
     }));
+    
+    // Show disconnection notification if enabled
+    showNotification(
+      "Disconnected", 
+      `Successfully disconnected from ${vpnState.selectedServer?.name || 'VPN'}`
+    );
     
     // Call the onSuccess callback
     if (onSuccess) {
