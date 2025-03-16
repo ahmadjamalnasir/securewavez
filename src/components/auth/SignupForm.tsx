@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Phone } from 'lucide-react';
@@ -6,8 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import GoogleIcon from './GoogleIcon';
-import EmailVerification from './EmailVerification';
-import PhoneVerification from './PhoneVerification';
 
 interface SignupFormProps {
   isLoading: boolean;
@@ -18,11 +15,6 @@ const SignupForm = ({ isLoading, setIsLoading }: SignupFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
-  const [signupStep, setSignupStep] = useState(1);
-  
-  // Email and phone OTP states
-  const [emailOtp, setEmailOtp] = useState('');
-  const [phoneOtp, setPhoneOtp] = useState('');
   
   // Signup form state
   const [signupForm, setSignupForm] = useState({
@@ -32,7 +24,6 @@ const SignupForm = ({ isLoading, setIsLoading }: SignupFormProps) => {
     password: '',
     confirmPassword: '',
     phone: '',
-    includePhone: false
   });
 
   // Helper functions for validation
@@ -82,17 +73,29 @@ const SignupForm = ({ isLoading, setIsLoading }: SignupFormProps) => {
       });
     }
     
-    // Move to next step (email OTP verification)
+    // Navigate to the OTP confirmation page
     setIsLoading(true);
     
     // Simulate sending OTP
     setTimeout(() => {
       setIsLoading(false);
-      setSignupStep(2);
       
       toast({
         title: "OTP Sent",
         description: "A verification code has been sent to your email"
+      });
+      
+      // Navigate to OTP confirmation page with verification data
+      navigate('/otp-confirmation', {
+        state: {
+          verificationType: 'email',
+          contact: signupForm.email,
+          firstName: signupForm.firstName,
+          lastName: signupForm.lastName,
+          email: signupForm.email,
+          password: signupForm.password,
+          phone: signupForm.phone
+        }
       });
     }, 1000);
   };
@@ -112,92 +115,6 @@ const SignupForm = ({ isLoading, setIsLoading }: SignupFormProps) => {
       navigate('/home');
     }, 1500);
   };
-
-  const handleEmailOtpVerification = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (emailOtp.length !== 6) {
-      return toast({
-        title: "Error",
-        description: "Please enter a valid 6-digit code",
-        variant: "destructive"
-      });
-    }
-    
-    setIsLoading(true);
-    
-    // Simulate OTP verification
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // If phone is provided, move to phone verification, otherwise complete signup
-      if (signupForm.phone) {
-        setSignupStep(3);
-        toast({
-          title: "OTP Sent",
-          description: "A verification code has been sent to your phone"
-        });
-      } else {
-        // Complete signup
-        completeSignup();
-      }
-    }, 1000);
-  };
-
-  const handlePhoneOtpVerification = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (phoneOtp.length !== 6) {
-      return toast({
-        title: "Error",
-        description: "Please enter a valid 6-digit code",
-        variant: "destructive"
-      });
-    }
-    
-    setIsLoading(true);
-    
-    // Simulate OTP verification
-    setTimeout(() => {
-      setIsLoading(false);
-      completeSignup();
-    }, 1000);
-  };
-
-  const completeSignup = () => {
-    toast({
-      title: "Success",
-      description: "Account created successfully"
-    });
-    
-    navigate('/home');
-  };
-
-  if (signupStep === 2) {
-    return (
-      <EmailVerification 
-        email={signupForm.email} 
-        emailOtp={emailOtp} 
-        setEmailOtp={setEmailOtp} 
-        isLoading={isLoading} 
-        onSubmit={handleEmailOtpVerification} 
-        onBack={() => setSignupStep(1)} 
-      />
-    );
-  }
-
-  if (signupStep === 3) {
-    return (
-      <PhoneVerification 
-        phone={signupForm.phone} 
-        phoneOtp={phoneOtp} 
-        setPhoneOtp={setPhoneOtp} 
-        isLoading={isLoading} 
-        onSubmit={handlePhoneOtpVerification} 
-        onBack={() => setSignupStep(2)} 
-      />
-    );
-  }
 
   return (
     <form onSubmit={handleSignupStepOne} className="space-y-4">

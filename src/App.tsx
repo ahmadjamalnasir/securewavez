@@ -8,6 +8,7 @@ import { VpnProvider } from "@/context/VpnContext";
 import NotFound from "./pages/NotFound";
 import Splash from "./pages/Splash";
 import Auth from "./pages/Auth";
+import OtpConfirmation from "./pages/OtpConfirmation";
 import Home from "./pages/Home";
 import ServerSelection from "./pages/ServerSelection";
 import Settings from "./pages/Settings";
@@ -25,6 +26,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Splash />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/otp-confirmation" element={<OtpConfirmation />} />
             <Route path="/home" element={<Home />} />
             <Route path="/servers" element={<ServerSelection />} />
             <Route path="/settings" element={<Settings />} />
