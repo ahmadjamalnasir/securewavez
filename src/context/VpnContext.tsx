@@ -146,7 +146,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const settingsStr = localStorage.getItem('vpnSettings');
       if (settingsStr) {
         const settings = JSON.parse(settingsStr);
-        return settings.notifications;
+        return settings.notifications === true; // Ensure it's strictly a boolean
       }
       return true; // Default to true if no settings found
     } catch (error) {
