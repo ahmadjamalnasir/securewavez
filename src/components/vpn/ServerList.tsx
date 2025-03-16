@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
-import { useVpn, Server } from '@/context/VpnContext';
+import { useVpn } from '@/context/VpnContext';
+import type { Server } from '@/types/vpn';
 import { Check, Search, Signal, Lock, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FadeIn from '@/components/animations/FadeIn';
