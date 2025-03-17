@@ -9,9 +9,10 @@ import GoogleIcon from './GoogleIcon';
 interface SignupFormProps {
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  onVerificationNeeded?: (type: 'email' | 'phone', contact: string, userData?: any) => void;
 }
 
-const SignupForm = ({ isLoading, setIsLoading }: SignupFormProps) => {
+const SignupForm = ({ isLoading, setIsLoading, onVerificationNeeded }: SignupFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
@@ -73,31 +74,55 @@ const SignupForm = ({ isLoading, setIsLoading }: SignupFormProps) => {
       });
     }
     
-    // Navigate to the OTP confirmation page
-    setIsLoading(true);
-    
-    // Simulate sending OTP
-    setTimeout(() => {
-      setIsLoading(false);
+    // Check if we should use the onVerificationNeeded callback
+    if (onVerificationNeeded) {
+      setIsLoading(true);
       
-      toast({
-        title: "OTP Sent",
-        description: "A verification code has been sent to your email"
-      });
-      
-      // Navigate to OTP confirmation page with verification data
-      navigate('/otp-confirmation', {
-        state: {
-          verificationType: 'email',
-          contact: signupForm.email,
+      // Simulate sending OTP
+      setTimeout(() => {
+        setIsLoading(false);
+        
+        toast({
+          title: "OTP Sent",
+          description: "A verification code has been sent to your email"
+        });
+        
+        // Call the verification needed callback
+        onVerificationNeeded('email', signupForm.email, {
           firstName: signupForm.firstName,
           lastName: signupForm.lastName,
           email: signupForm.email,
           password: signupForm.password,
           phone: signupForm.phone
-        }
-      });
-    }, 1000);
+        });
+      }, 1000);
+    } else {
+      // Original code path for direct navigation
+      setIsLoading(true);
+      
+      // Simulate sending OTP
+      setTimeout(() => {
+        setIsLoading(false);
+        
+        toast({
+          title: "OTP Sent",
+          description: "A verification code has been sent to your email"
+        });
+        
+        // Navigate to OTP confirmation page with verification data
+        navigate('/otp-confirmation', {
+          state: {
+            verificationType: 'email',
+            contact: signupForm.email,
+            firstName: signupForm.firstName,
+            lastName: signupForm.lastName,
+            email: signupForm.email,
+            password: signupForm.password,
+            phone: signupForm.phone
+          }
+        });
+      }, 1000);
+    }
   };
 
   const handleGoogleSignIn = () => {
