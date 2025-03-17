@@ -7,6 +7,7 @@ import LoginForm from '@/components/auth/LoginForm';
 import SignupForm from '@/components/auth/SignupForm';
 import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
 import OtpVerificationDialog from '@/components/auth/OtpVerificationDialog';
+import ResetPasswordForm from '@/components/auth/ResetPasswordForm';
 import { useNavigate } from 'react-router-dom';
 
 export default function Auth() {
@@ -14,6 +15,11 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [resetPasswordData, setResetPasswordData] = useState<{
+    email?: string;
+    phone?: string;
+  }>({});
   
   // For OTP verification dialog
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
@@ -26,6 +32,7 @@ export default function Auth() {
     password: string;
     phone?: string;
   } | null>(null);
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
 
   // Reset all forms when switching tabs
   const handleTabChange = (value: string) => {
@@ -50,9 +57,17 @@ export default function Auth() {
       setTimeout(() => {
         navigate('/home');
       }, 500);
-    } else {
-      // This was from forgot password or other flows
-      // Already handled in the respective forms
+    } else if (isPasswordReset) {
+      // This was from forgot password, open reset password dialog
+      setForgotPasswordOpen(false);
+      setOtpDialogOpen(false);
+      
+      // Show the reset password form
+      setResetPasswordData({
+        [verificationType]: contactValue
+      });
+      setResetPasswordOpen(true);
+      setIsPasswordReset(false);
     }
   };
 
@@ -94,6 +109,27 @@ export default function Auth() {
             isLoading={isLoading}
             setIsLoading={setIsLoading}
             onClose={() => setForgotPasswordOpen(false)}
+            onVerificationNeeded={(type, contact) => {
+              setIsPasswordReset(true);
+              handleVerificationNeeded(type, contact);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Password</DialogTitle>
+          </DialogHeader>
+          
+          <ResetPasswordForm
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            email={resetPasswordData.email}
+            phone={resetPasswordData.phone}
+            onClose={() => setResetPasswordOpen(false)}
           />
         </DialogContent>
       </Dialog>
