@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, X, Mail, Phone, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +44,15 @@ const OtpVerificationDialog = ({
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [verificationState, setVerificationState] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // Reset OTP when dialog opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setOtp('');
+      setError('');
+      setVerificationState('idle');
+    }
+  }, [isOpen]);
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +147,7 @@ const OtpVerificationDialog = ({
                   render={({ slots }) => (
                     <InputOTPGroup>
                       {slots.map((slot, index) => (
-                        <InputOTPSlot key={index} index={index} className="w-12 h-12" />
+                        <InputOTPSlot key={index} {...slot} />
                       ))}
                     </InputOTPGroup>
                   )}
