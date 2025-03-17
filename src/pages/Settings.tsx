@@ -1,13 +1,15 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Bell, Shield, Lock, Globe, Info, Moon, Sun, Zap } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Shield, Lock, Globe, Info, Moon, Sun, Zap, AppWindow, Check, Search, Plus, X, ArrowRight } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Layout from '@/components/layout/Layout';
 import FadeIn from '@/components/animations/FadeIn';
@@ -31,6 +33,11 @@ const apps = [
   { id: 'netflix', name: 'Netflix', icon: '🎬' },
   { id: 'slack', name: 'Slack', icon: '💬' },
   { id: 'zoom', name: 'Zoom', icon: '📹' },
+  { id: 'discord', name: 'Discord', icon: '🎮' },
+  { id: 'twitter', name: 'Twitter', icon: '🐦' },
+  { id: 'facebook', name: 'Facebook', icon: '👥' },
+  { id: 'instagram', name: 'Instagram', icon: '📷' },
+  { id: 'telegram', name: 'Telegram', icon: '✈️' },
 ];
 
 export default function Settings() {
@@ -39,6 +46,8 @@ export default function Settings() {
   const isMobile = useIsMobile();
   const [settings, setSettings] = useState(defaultSettings);
   const [excludedApps, setExcludedApps] = useState<string[]>([]);
+  const [isAppSelectorOpen, setIsAppSelectorOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Load settings from localStorage on component mount
   useEffect(() => {
@@ -60,6 +69,11 @@ export default function Settings() {
   const handleToggle = (key: string) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: !prev[key as keyof typeof prev] };
+      
+      // If split tunneling is being enabled, open the app selector modal
+      if (key === 'splitTunneling' && !prev.splitTunneling) {
+        setIsAppSelectorOpen(true);
+      }
       
       // Save to localStorage immediately
       localStorage.setItem('vpnSettings', JSON.stringify(newSettings));
@@ -132,6 +146,15 @@ export default function Settings() {
     // Navigate to home screen after save
     navigate('/home');
   };
+
+  const openAppSelector = () => {
+    setIsAppSelectorOpen(true);
+  };
+
+  // Filter apps based on search term
+  const filteredApps = apps.filter(app => 
+    app.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
   return (
     <Layout>
@@ -214,20 +237,44 @@ export default function Settings() {
 
                 {settings.splitTunneling && (
                   <div className="mt-3 pl-10 space-y-3 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
-                    <p className="text-sm font-medium">Select apps to exclude from VPN:</p>
-                    {apps.map((app) => (
-                      <div key={app.id} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`app-${app.id}`} 
-                          checked={excludedApps.includes(app.id)}
-                          onCheckedChange={() => handleAppToggle(app.id)}
-                        />
-                        <Label htmlFor={`app-${app.id}`} className="flex items-center space-x-2 cursor-pointer">
-                          <span>{app.icon}</span>
-                          <span>{app.name}</span>
-                        </Label>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Select apps to exclude from VPN:</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={openAppSelector}
+                        className="flex items-center"
+                      >
+                        <AppWindow className="w-4 h-4 mr-2" />
+                        Select Apps
+                      </Button>
+                    </div>
+                    
+                    {excludedApps.length > 0 ? (
+                      <div className="space-y-2">
+                        {excludedApps.map((appId) => {
+                          const app = apps.find(a => a.id === appId);
+                          return app ? (
+                            <div key={app.id} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-800 rounded">
+                              <div className="flex items-center">
+                                <span className="mr-2">{app.icon}</span>
+                                <span>{app.name}</span>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleAppToggle(app.id)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : null;
+                        })}
                       </div>
-                    ))}
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">No apps selected. VPN will be used for all traffic.</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -355,6 +402,69 @@ export default function Settings() {
           </FadeIn>
         </div>
       </div>
+
+      {/* App Selection Modal */}
+      <Dialog open={isAppSelectorOpen} onOpenChange={setIsAppSelectorOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Applications</DialogTitle>
+            <DialogDescription>
+              Choose which apps will bypass the VPN connection
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search applications..." 
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            {/* App List */}
+            <div className="h-[300px] overflow-y-auto space-y-2 pr-1">
+              {filteredApps.length > 0 ? (
+                filteredApps.map(app => (
+                  <div 
+                    key={app.id} 
+                    className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer ${
+                      excludedApps.includes(app.id) 
+                        ? 'bg-primary/10 dark:bg-primary/20' 
+                        : 'hover:bg-accent'
+                    }`}
+                    onClick={() => handleAppToggle(app.id)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xl">{app.icon}</span>
+                      <span className="font-medium">{app.name}</span>
+                    </div>
+                    {excludedApps.includes(app.id) && (
+                      <Check className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No applications match your search
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-muted-foreground">
+              {excludedApps.length} app{excludedApps.length !== 1 ? 's' : ''} selected
+            </div>
+            <Button onClick={() => setIsAppSelectorOpen(false)}>
+              Done <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
