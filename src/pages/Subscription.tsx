@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { CheckCircle2, CreditCard, Calendar, Wallet, Shield, Lock, Zap, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -77,21 +76,11 @@ export default function Subscription() {
   
   const handlePlanSelect = (planId: string) => {
     setSelectedPlan(planId);
-    
-    toast({
-      title: "Plan Selected",
-      description: `You've selected the ${plans.find(p => p.id === planId)?.name}`,
-    });
   };
   
   const handleContinue = (planId: string) => {
     setSelectedPlan(planId);
     setPaymentStep('payment');
-    
-    toast({
-      title: "Plan Selected",
-      description: `You've selected the ${plans.find(p => p.id === planId)?.name}`,
-    });
   };
   
   const handlePaymentSubmit = (e: React.FormEvent) => {
