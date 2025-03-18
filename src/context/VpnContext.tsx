@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { VpnState, Server, VpnContextType } from '@/types/vpn';
 import { sampleServers } from '@/data/servers';

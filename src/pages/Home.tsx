@@ -38,12 +38,7 @@ export default function Home() {
   // Handle the connection/disconnection and show appropriate toast messages
   const handleConnectToggle = () => {
     if (vpnState.status === 'connected') {
-      disconnect(() => {
-        toast({
-          title: "Disconnected",
-          description: "VPN connection terminated",
-        });
-      });
+      disconnect();
     } else if (vpnState.status === 'disconnected') {
       // Show connecting toast immediately
       showNotification(
