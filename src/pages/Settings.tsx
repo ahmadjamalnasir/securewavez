@@ -49,22 +49,39 @@ export default function Settings() {
   const [isAppSelectorOpen, setIsAppSelectorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Add state to track initial loaded settings
+  const [initialSettings, setInitialSettings] = useState(defaultSettings);
+  const [initialExcludedApps, setInitialExcludedApps] = useState<string[]>([]);
+  const [hasChanges, setHasChanges] = useState(false);
+  
   // Load settings from localStorage on component mount
   useEffect(() => {
     try {
       const savedSettings = localStorage.getItem('vpnSettings');
       if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings(parsedSettings);
+        setInitialSettings(parsedSettings);
       }
       
       const savedExcludedApps = localStorage.getItem('vpnExcludedApps');
       if (savedExcludedApps) {
-        setExcludedApps(JSON.parse(savedExcludedApps));
+        const parsedExcludedApps = JSON.parse(savedExcludedApps);
+        setExcludedApps(parsedExcludedApps);
+        setInitialExcludedApps(parsedExcludedApps);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
   }, []);
+  
+  // Check if settings have changed from initial values
+  useEffect(() => {
+    const settingsChanged = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+    const appsChanged = JSON.stringify(excludedApps) !== JSON.stringify(initialExcludedApps);
+    
+    setHasChanges(settingsChanged || appsChanged);
+  }, [settings, excludedApps, initialSettings, initialExcludedApps]);
   
   const handleToggle = (key: string) => {
     setSettings(prev => {
@@ -75,8 +92,7 @@ export default function Settings() {
         setIsAppSelectorOpen(true);
       }
       
-      // Save to localStorage immediately
-      localStorage.setItem('vpnSettings', JSON.stringify(newSettings));
+      // Don't save to localStorage immediately - wait until user clicks "Save Changes"
       
       toast({
         title: "Setting Updated",
@@ -91,8 +107,7 @@ export default function Settings() {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
       
-      // Save to localStorage immediately
-      localStorage.setItem('vpnSettings', JSON.stringify(newSettings));
+      // Don't save to localStorage immediately - wait until user clicks "Save Changes"
       
       toast({
         title: "Setting Updated",
@@ -109,8 +124,7 @@ export default function Settings() {
         ? prev.filter(id => id !== appId)
         : [...prev, appId];
       
-      // Save to localStorage immediately
-      localStorage.setItem('vpnExcludedApps', JSON.stringify(newExcludedApps));
+      // Don't save to localStorage immediately - wait until user clicks "Save Changes"
       
       return newExcludedApps;
     });
@@ -123,6 +137,13 @@ export default function Settings() {
     // Clear localStorage
     localStorage.setItem('vpnSettings', JSON.stringify(defaultSettings));
     localStorage.setItem('vpnExcludedApps', JSON.stringify([]));
+    
+    // Also update initial settings to match the default values
+    setInitialSettings(defaultSettings);
+    setInitialExcludedApps([]);
+    
+    // Since we've reset to defaults, there are no changes
+    setHasChanges(false);
     
     toast({
       title: "Settings Reset",
@@ -137,6 +158,13 @@ export default function Settings() {
     // Save to localStorage
     localStorage.setItem('vpnSettings', JSON.stringify(settings));
     localStorage.setItem('vpnExcludedApps', JSON.stringify(excludedApps));
+    
+    // Update initial settings to current values (as they are now saved)
+    setInitialSettings(settings);
+    setInitialExcludedApps([...excludedApps]);
+    
+    // No changes anymore
+    setHasChanges(false);
     
     toast({
       title: "Settings Saved",
@@ -395,7 +423,11 @@ export default function Settings() {
               <Button variant="outline" className="flex-1" onClick={handleResetSettings}>
                 Reset Settings
               </Button>
-              <Button className="flex-1" onClick={handleSaveSettings}>
+              <Button 
+                className="flex-1" 
+                onClick={handleSaveSettings}
+                disabled={!hasChanges}
+              >
                 Save Changes
               </Button>
             </div>
