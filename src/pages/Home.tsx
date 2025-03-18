@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Power, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import Layout from '@/components/layout/Layout';
 import FadeIn from '@/components/animations/FadeIn';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { showNotification } from '@/utils/vpnUtils';
 
 export default function Home() {
   const { vpnState, connect, disconnect, isLoading } = useVpn();
@@ -19,19 +19,14 @@ export default function Home() {
   useEffect(() => {
     if (vpnState.status === 'disconnected' && !vpnState.selectedServer && !isLoading && !showLocationToast) {
       setTimeout(() => {
-        toast({
-          title: "Select a Server",
-          description: "For the best performance, select a server location",
-          action: (
-            <Button variant="outline" size="sm" onClick={() => window.location.href = '/servers'}>
-              Select
-            </Button>
-          ),
-        });
+        showNotification(
+          "Select a Server",
+          "For the best performance, select a server location"
+        );
         setShowLocationToast(true);
       }, 1500);
     }
-  }, [vpnState.status, vpnState.selectedServer, isLoading, toast, showLocationToast]);
+  }, [vpnState.status, vpnState.selectedServer, isLoading, showLocationToast]);
 
   // Reset first connection attempt flag when disconnected
   useEffect(() => {
@@ -51,25 +46,18 @@ export default function Home() {
       });
     } else if (vpnState.status === 'disconnected') {
       // Show connecting toast immediately
-      toast({
-        title: "Connecting...",
-        description: vpnState.selectedServer 
+      showNotification(
+        "Connecting...",
+        vpnState.selectedServer 
           ? vpnState.selectedServer.isSmartServer
             ? "Connecting to the best available server"
             : `Connecting to ${vpnState.selectedServer.name}` 
-          : "Connecting to fastest server",
-      });
+          : "Connecting to fastest server"
+      );
       
       // Connect and show connected toast on success
       connect(() => {
-        toast({
-          title: "Connected",
-          description: vpnState.selectedServer 
-            ? vpnState.selectedServer.isSmartServer
-              ? "Connected to the best available server"
-              : `Connected to ${vpnState.selectedServer.name}` 
-            : "Connected to fastest server",
-        });
+        // Nothing to do here - the notification is shown in the connect function
         
         // Set first connection attempt to false to prevent UI sync issues
         setIsFirstConnectionAttempt(false);
