@@ -84,8 +84,14 @@ export default function Subscription() {
     });
   };
   
-  const handleContinue = () => {
+  const handleContinue = (planId: string) => {
+    setSelectedPlan(planId);
     setPaymentStep('payment');
+    
+    toast({
+      title: "Plan Selected",
+      description: `You've selected the ${plans.find(p => p.id === planId)?.name}`,
+    });
   };
   
   const handlePaymentSubmit = (e: React.FormEvent) => {
@@ -135,7 +141,7 @@ export default function Subscription() {
                   <div 
                     key={plan.id}
                     className={cn(
-                      "vpn-card relative transition-all duration-300",
+                      "vpn-card relative transition-all duration-300 flex flex-col",
                       selectedPlan === plan.id && "ring-2 ring-vpn-blue",
                       plan.popular && "transform md:-translate-y-2"
                     )}
@@ -170,13 +176,22 @@ export default function Subscription() {
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-2 flex-1">
                       {plan.features.map((feature, i) => (
                         <div key={i} className="flex items-center">
                           <CheckCircle2 className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
                           <span className="text-sm">{feature}</span>
                         </div>
                       ))}
+                    </div>
+                    
+                    <div className="mt-6">
+                      <Button 
+                        className="w-full shadow-button"
+                        onClick={() => handleContinue(plan.id)}
+                      >
+                        Continue with Plan
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -224,18 +239,6 @@ export default function Subscription() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </FadeIn>
-            
-            <FadeIn delay={400}>
-              <div className="flex justify-center mb-20">
-                <Button 
-                  size="lg" 
-                  className="shadow-button"
-                  onClick={handleContinue}
-                >
-                  Continue with {selectedPlanObj?.name}
-                </Button>
               </div>
             </FadeIn>
           </>
