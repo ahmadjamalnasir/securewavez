@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useVpn } from '@/context/VpnContext';
 import type { Server } from '@/types/vpn';
 import { Check, Search, Signal, Lock, Zap } from 'lucide-react';
@@ -7,8 +8,9 @@ import { cn } from '@/lib/utils';
 import FadeIn from '@/components/animations/FadeIn';
 
 export default function ServerList() {
-  const { servers, selectServer, vpnState, smartServer } = useVpn();
+  const { servers, selectServer, vpnState, smartServer, connect } = useVpn();
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
   
   // Filter servers based on search query
   const filteredServers = servers.filter(server => 
@@ -48,6 +50,19 @@ export default function ServerList() {
       'auto select'.includes(searchQuery.toLowerCase())
     );
   
+  // Function to handle server selection and navigation
+  const handleServerSelect = (server: Server) => {
+    selectServer(server);
+    
+    // Navigate to home page and initiate connection
+    navigate('/home');
+    
+    // Add a small delay before connecting to allow navigation to complete
+    setTimeout(() => {
+      connect();
+    }, 300);
+  };
+  
   // Function to get ping indicator color
   const getPingColor = (ping: number) => {
     if (ping < 60) return 'bg-green-500';
@@ -72,7 +87,7 @@ export default function ServerList() {
           ? "border-vpn-blue bg-vpn-blue/5" 
           : "border-gray-200 dark:border-gray-800 hover:border-vpn-blue/50"
       )}
-      onClick={() => selectServer(server)}
+      onClick={() => handleServerSelect(server)}
     >
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-3">
