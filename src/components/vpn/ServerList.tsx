@@ -17,8 +17,13 @@ export default function ServerList() {
     server.city.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Only group regular servers by country (not the smart server)
-  const groupedServers = filteredServers.reduce((acc, server) => {
+  // Only group regular servers by country (not the smart server or selected server)
+  const regularServers = filteredServers.filter(server => 
+    server.id !== 'smart' && 
+    (!vpnState.selectedServer || server.id !== vpnState.selectedServer.id)
+  );
+  
+  const groupedServers = regularServers.reduce((acc, server) => {
     if (!acc[server.country]) {
       acc[server.country] = [];
     }
@@ -26,10 +31,22 @@ export default function ServerList() {
     return acc;
   }, {} as Record<string, Server[]>);
   
-  // Should we show Smart Server in the list
-  const showSmartServer = !searchQuery || 
-    'smart server'.includes(searchQuery.toLowerCase()) || 
-    'auto select'.includes(searchQuery.toLowerCase());
+  // Should we show the current selected server
+  const showSelectedServer = 
+    vpnState.selectedServer && 
+    (!searchQuery || 
+      vpnState.selectedServer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vpnState.selectedServer.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vpnState.selectedServer.city.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  
+  // Should we show Smart Server in the list (and it's not already the selected server)
+  const showSmartServer = 
+    (!vpnState.selectedServer || vpnState.selectedServer.id !== 'smart') && 
+    (!searchQuery || 
+      'smart server'.includes(searchQuery.toLowerCase()) || 
+      'auto select'.includes(searchQuery.toLowerCase())
+    );
   
   // Function to get ping indicator color
   const getPingColor = (ping: number) => {
@@ -121,9 +138,17 @@ export default function ServerList() {
       </div>
       
       <div className="space-y-5 max-h-[65vh] overflow-y-auto pr-2 pb-2">
-        {/* Smart Server at the top */}
-        {showSmartServer && (
+        {/* Currently Selected Server at the top */}
+        {showSelectedServer && (
           <FadeIn delay={0} className="space-y-1.5">
+            <h3 className="font-medium text-sm text-gray-500 px-1">Current Selection</h3>
+            {renderServerCard(vpnState.selectedServer!)}
+          </FadeIn>
+        )}
+        
+        {/* Smart Server below the selected server */}
+        {showSmartServer && (
+          <FadeIn delay={100} className="space-y-1.5">
             <h3 className="font-medium text-sm text-gray-500 px-1">Recommended</h3>
             {renderServerCard(smartServer)}
           </FadeIn>
@@ -131,14 +156,14 @@ export default function ServerList() {
         
         {/* Regular servers grouped by country */}
         {Object.entries(groupedServers).map(([country, countryServers], index) => (
-          <FadeIn key={country} delay={(index + 1) * 100} className="space-y-1.5">
+          <FadeIn key={country} delay={(index + 2) * 100} className="space-y-1.5">
             <h3 className="font-medium text-sm text-gray-500 px-1">{country}</h3>
             
             {countryServers.map(renderServerCard)}
           </FadeIn>
         ))}
         
-        {filteredServers.length === 0 && !showSmartServer && (
+        {filteredServers.length === 0 && !showSelectedServer && !showSmartServer && (
           <div className="text-center py-8">
             <p className="text-gray-500">No servers found matching your search.</p>
           </div>
