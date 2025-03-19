@@ -17,7 +17,7 @@ export const getNotificationSettings = (): boolean => {
   }
 };
 
-// Show notification only if enabled in settings
+// Show notification only if enabled in settings - specifically for connection events
 export const showNotification = (title: string, description: string) => {
   if (getNotificationSettings()) {
     toast({

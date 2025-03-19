@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, Bell, Shield, Lock, Globe, Info, Moon, Sun, Zap, AppWindow, Check, Search, Plus, X, ArrowRight } from 'lucide-react';
@@ -12,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Layout from '@/components/layout/Layout';
 import FadeIn from '@/components/animations/FadeIn';
-import { useToast } from '@/hooks/use-toast';
 
 // Default settings
 const defaultSettings = {
@@ -40,7 +40,6 @@ const apps = [
 ];
 
 export default function Settings() {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [settings, setSettings] = useState(defaultSettings);
@@ -92,12 +91,6 @@ export default function Settings() {
       }
       
       // Don't save to localStorage immediately - wait until user clicks "Save Changes"
-      
-      toast({
-        title: "Setting Updated",
-        description: `${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')} is now ${newSettings[key as keyof typeof newSettings] ? 'enabled' : 'disabled'}`,
-      });
-      
       return newSettings;
     });
   };
@@ -105,14 +98,7 @@ export default function Settings() {
   const handleRadioChange = (key: string, value: string) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
-      
       // Don't save to localStorage immediately - wait until user clicks "Save Changes"
-      
-      toast({
-        title: "Setting Updated",
-        description: `${key.charAt(0).toUpperCase() + key.slice(1)} is now set to ${value}`,
-      });
-      
       return newSettings;
     });
   };
@@ -124,7 +110,6 @@ export default function Settings() {
         : [...prev, appId];
       
       // Don't save to localStorage immediately - wait until user clicks "Save Changes"
-      
       return newExcludedApps;
     });
   };
@@ -144,12 +129,7 @@ export default function Settings() {
     // Since we've reset to defaults, there are no changes
     setHasChanges(false);
     
-    toast({
-      title: "Settings Reset",
-      description: "All settings have been reset to their default values",
-    });
-    
-    // Navigate to home screen after reset
+    // Navigate to home screen after reset - removed toast notification
     navigate('/home');
   };
 
