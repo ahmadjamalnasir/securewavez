@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Settings as SettingsIcon, Bell, Shield, Lock, Globe, Info, Moon, Sun, Zap, AppWindow, Check, Search, Plus, X, ArrowRight } from 'lucide-react';
@@ -166,12 +165,7 @@ export default function Settings() {
     // No changes anymore
     setHasChanges(false);
     
-    toast({
-      title: "Settings Saved",
-      description: "Your settings have been saved successfully",
-    });
-    
-    // Navigate to home screen after save
+    // Navigate to home screen after save - removed toast notification
     navigate('/home');
   };
 
