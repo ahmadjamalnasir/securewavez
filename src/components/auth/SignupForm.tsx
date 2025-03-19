@@ -78,14 +78,9 @@ const SignupForm = ({ isLoading, setIsLoading, onVerificationNeeded }: SignupFor
     if (onVerificationNeeded) {
       setIsLoading(true);
       
-      // Simulate sending OTP
+      // Simulate sending OTP - removed toast notification
       setTimeout(() => {
         setIsLoading(false);
-        
-        toast({
-          title: "OTP Sent",
-          description: "A verification code has been sent to your email"
-        });
         
         // Call the verification needed callback
         onVerificationNeeded('email', signupForm.email, {
@@ -100,14 +95,9 @@ const SignupForm = ({ isLoading, setIsLoading, onVerificationNeeded }: SignupFor
       // Original code path for direct navigation
       setIsLoading(true);
       
-      // Simulate sending OTP
+      // Simulate sending OTP - removed toast notification
       setTimeout(() => {
         setIsLoading(false);
-        
-        toast({
-          title: "OTP Sent",
-          description: "A verification code has been sent to your email"
-        });
         
         // Navigate to OTP confirmation page with verification data
         navigate('/otp-confirmation', {
@@ -128,14 +118,9 @@ const SignupForm = ({ isLoading, setIsLoading, onVerificationNeeded }: SignupFor
   const handleGoogleSignIn = () => {
     setIsLoading(true);
     
-    // Simulate OAuth API call
+    // Simulate OAuth API call - removed toast notification
     setTimeout(() => {
       setIsLoading(false);
-      
-      toast({
-        title: "Success",
-        description: "Google Sign-in successful"
-      });
       
       navigate('/home');
     }, 1500);

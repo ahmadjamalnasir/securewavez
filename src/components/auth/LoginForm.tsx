@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
@@ -41,12 +40,7 @@ const LoginForm = ({ isLoading, setIsLoading, setForgotPasswordOpen }: LoginForm
     setTimeout(() => {
       setIsLoading(false);
       
-      // Success, navigate to home
-      toast({
-        title: "Success",
-        description: "You have successfully logged in"
-      });
-      
+      // Success, navigate to home - removed toast notification
       navigate('/home');
     }, 1500);
   };
@@ -58,11 +52,7 @@ const LoginForm = ({ isLoading, setIsLoading, setForgotPasswordOpen }: LoginForm
     setTimeout(() => {
       setIsLoading(false);
       
-      toast({
-        title: "Success",
-        description: "Google Sign-in successful"
-      });
-      
+      // Success - removed toast notification
       navigate('/home');
     }, 1500);
   };

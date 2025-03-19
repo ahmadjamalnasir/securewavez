@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -61,10 +60,7 @@ const ResetPasswordForm = ({
     setTimeout(() => {
       setIsLoading(false);
       
-      toast({
-        title: "Password Reset Successful",
-        description: "Your password has been reset successfully",
-      });
+      // Removed success toast notification
       
       // Navigate to login page
       navigate('/auth');
