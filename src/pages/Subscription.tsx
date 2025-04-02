@@ -61,6 +61,14 @@ export default function Subscription() {
     }
   ];
   
+  // Key premium features to highlight
+  const keyFeatures = [
+    { icon: <Shield className="w-5 h-5 text-vpn-blue" />, title: "Military-grade encryption" },
+    { icon: <Lock className="w-5 h-5 text-vpn-blue" />, title: "No-logs policy" },
+    { icon: <Zap className="w-5 h-5 text-vpn-blue" />, title: "WireGuard protocol" },
+    { icon: <Gauge className="w-5 h-5 text-vpn-blue" />, title: "Unlimited bandwidth" }
+  ];
+  
   const handlePlanSelect = (planId: string) => {
     setSelectedPlan(planId);
   };
@@ -93,14 +101,6 @@ export default function Subscription() {
   };
   
   const selectedPlanObj = plans.find(p => p.id === selectedPlan);
-
-  // Key premium features to highlight
-  const keyFeatures = [
-    { icon: <Shield className="w-5 h-5 text-vpn-blue" />, title: "Military-grade encryption" },
-    { icon: <Lock className="w-5 h-5 text-vpn-blue" />, title: "No-logs policy" },
-    { icon: <Zap className="w-5 h-5 text-vpn-blue" />, title: "WireGuard protocol" },
-    { icon: <Gauge className="w-5 h-5 text-vpn-blue" />, title: "Unlimited bandwidth" }
-  ];
   
   return (
     <Layout>
@@ -119,18 +119,18 @@ export default function Subscription() {
         
         {paymentStep === 'plans' ? (
           <>
-            {/* Highlighted Key Features Section */}
+            {/* Compact Premium Features Section */}
             <FadeIn delay={100}>
-              <div className="vpn-card mb-6">
+              <div className="vpn-card mb-6 p-4">
                 <h2 className="text-lg md:text-xl font-semibold mb-3">Premium Features</h2>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   {keyFeatures.map((feature, index) => (
-                    <div key={index} className="flex flex-col items-center text-center p-2 space-y-2">
-                      <div className="bg-vpn-blue/10 p-2 rounded-lg">
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="bg-vpn-blue/10 p-1.5 rounded-md">
                         {feature.icon}
                       </div>
-                      <p className="text-sm font-medium">{feature.title}</p>
+                      <p className="text-xs md:text-sm font-medium">{feature.title}</p>
                     </div>
                   ))}
                 </div>
