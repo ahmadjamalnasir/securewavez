@@ -26,10 +26,16 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Define an interface for the error response structure
+interface ApiErrorResponse {
+  errors?: Record<string, string[]>;
+  message?: string;
+}
+
 // Response interceptor for handling errors globally
 axiosClient.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError) => {
+  (error: AxiosError<ApiErrorResponse>) => {
     const statusCode = error.response?.status;
     
     // Handle authentication errors

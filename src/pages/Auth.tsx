@@ -21,6 +21,7 @@ export default function Auth() {
     email?: string;
     phone?: string;
   }>({});
+  const [resetFormLoading, setResetFormLoading] = useState(false);
   
   // For OTP verification dialog
   const [otpDialogOpen, setOtpDialogOpen] = useState(false);
@@ -127,6 +128,8 @@ export default function Auth() {
           </DialogHeader>
           
           <ResetPasswordForm
+            isLoading={resetFormLoading}
+            setIsLoading={setResetFormLoading}
             email={resetPasswordData.email}
             phone={resetPasswordData.phone}
             onClose={() => setResetPasswordOpen(false)}
