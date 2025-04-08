@@ -16,6 +16,7 @@ import FadeIn from '@/components/animations/FadeIn';
 import SplitTunneling from '@/components/vpn/SplitTunneling';
 import { useSettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
+import { VpnSettings } from '@/api/settingsApi';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function Settings() {
   } = useSettings();
   
   // Track initial settings to detect changes
-  const [initialSettings, setInitialSettings] = useState(settings);
+  const [initialSettings, setInitialSettings] = useState<VpnSettings>(settings);
   const [hasChanges, setHasChanges] = useState(false);
   
   // Update initial settings when settings are loaded
@@ -50,12 +51,12 @@ export default function Settings() {
   }, [settings, initialSettings, isLoading]);
   
   const handleResetSettings = () => {
-    // Reset to default settings
-    const defaultSettings = {
+    // Reset to default settings with properly typed theme value
+    const defaultSettings: VpnSettings = {
       killSwitch: true,
       autoConnect: false,
       notifications: true,
-      theme: 'system',
+      theme: 'system' as 'light' | 'dark' | 'system',
       splitTunneling: false,
       ipv6Protection: true,
       dnsLeakProtection: true,
