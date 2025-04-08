@@ -1,8 +1,19 @@
-import { WireGuardConfig, ConnectionError, ConnectionStatus, ConnectionStats, ConnectionErrorType } from '@/types/wireguard';
+import { 
+  WireGuardConfig, 
+  ConnectionError, 
+  ConnectionStatus, 
+  ConnectionStats, 
+  ConnectionErrorType 
+} from '@/types/wireguard';
 import { Server } from '@/types/vpn';
+import { encryptData, decryptData } from '@/utils/cryptoUtils';
+import { toast } from 'sonner';
+import dnsService from './dnsService';
+import killSwitchService from './killSwitchService';
 
 /**
- * Service for managing WireGuard configurations
+ * Service for managing WireGuard configurations and connections
+ * @class WireGuardService
  */
 class WireGuardService {
   private currentConfig: WireGuardConfig | null = null;
@@ -14,6 +25,8 @@ class WireGuardService {
   private statsInterval: NodeJS.Timeout | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 3;
+  private secureStorageKey = 'encrypted_wg_config';
+  private connectionStartTime: number | null = null;
 
   /**
    * Generate WireGuard configuration for a server
@@ -21,22 +34,55 @@ class WireGuardService {
    * @returns Generated WireGuard configuration
    */
   async generateConfig(server: Server): Promise<WireGuardConfig> {
-    // In a real implementation, this would make an API call to get the configuration
-    // or generate it locally based on user credentials and server info
-    console.log('Generating WireGuard config for server:', server.name);
-    
-    // This is a placeholder that would be replaced with actual implementation
-    // The real implementation would generate or retrieve a private key securely
-    const config: WireGuardConfig = {
-      privateKey: 'placeholder_private_key',
-      publicKey: 'placeholder_server_public_key',
-      endpoint: `${server.name}.example.com:51820`,
-      allowedIPs: ['0.0.0.0/0', '::/0'], // Route all traffic through VPN
-      dns: ['1.1.1.1', '1.0.0.1'], // Cloudflare DNS
-      persistentKeepalive: 25
-    };
-    
-    return config;
+    try {
+      console.log('Generating WireGuard config for server:', server.name);
+      
+      // In a production environment, this would make an API call to get the configuration
+      // using proper authentication
+      
+      // This is a placeholder that would be replaced with actual implementation
+      const config: WireGuardConfig = {
+        privateKey: this.generatePrivateKey(),
+        publicKey: this.generatePublicKey(server),
+        endpoint: `${server.id}.${server.country.toLowerCase()}.vpnprovider.com:51820`,
+        allowedIPs: ['0.0.0.0/0', '::/0'], // Route all traffic through VPN
+        dns: ['1.1.1.1', '1.0.0.1'], // Cloudflare DNS
+        persistentKeepalive: 25
+      };
+      
+      return config;
+    } catch (error) {
+      console.error('Failed to generate WireGuard config:', error);
+      throw this.createError(
+        'config_invalid', 
+        'Failed to generate WireGuard configuration', 
+        error instanceof Error ? error.message : 'Unknown error',
+        true
+      );
+    }
+  }
+
+  /**
+   * Generate a secure private key (placeholder implementation)
+   * @returns A private key for WireGuard
+   * @private
+   */
+  private generatePrivateKey(): string {
+    // In a real implementation, this would use the WireGuard API
+    // or a cryptographically secure random number generator
+    return 'placeholder_private_key_' + Math.random().toString(36).substring(2, 15);
+  }
+
+  /**
+   * Generate a public key based on server information (placeholder implementation)
+   * @param server The server to generate a public key for
+   * @returns A public key for WireGuard
+   * @private
+   */
+  private generatePublicKey(server: Server): string {
+    // In a real implementation, this would use the WireGuard API
+    // or retrieve the public key from the server's configuration
+    return `placeholder_public_key_${server.id}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
   /**
@@ -44,14 +90,29 @@ class WireGuardService {
    * @param config The configuration to store
    */
   async saveConfig(config: WireGuardConfig): Promise<void> {
-    // In a real implementation, this would securely store the configuration
-    // using platform-specific secure storage mechanisms
-    console.log('Saving WireGuard config');
-    
-    // For web apps, a possible approach would be to encrypt the config before storing
-    // localStorage.setItem('encrypted_wg_config', encryptedConfig);
-    
-    this.currentConfig = config;
+    try {
+      console.log('Securely saving WireGuard config');
+      
+      // Encrypt the configuration before storing
+      // In a real implementation, this would use platform-specific secure storage
+      // such as Keychain on iOS or Keystore on Android
+      const configString = JSON.stringify(config);
+      const encryptedConfig = await encryptData(configString);
+      
+      // In a web app, we would use a more secure storage mechanism
+      // but for demonstration, we're using localStorage with encryption
+      localStorage.setItem(this.secureStorageKey, encryptedConfig);
+      
+      this.currentConfig = config;
+    } catch (error) {
+      console.error('Failed to save WireGuard config securely:', error);
+      throw this.createError(
+        'unknown', 
+        'Failed to securely store VPN configuration', 
+        error instanceof Error ? error.message : 'Unknown error',
+        false
+      );
+    }
   }
 
   /**
@@ -59,35 +120,52 @@ class WireGuardService {
    * @returns The stored configuration or null if none exists
    */
   async loadConfig(): Promise<WireGuardConfig | null> {
-    // In a real implementation, this would retrieve and decrypt the stored configuration
-    console.log('Loading WireGuard config');
-    
-    // Example of retrieving from localStorage:
-    // const encryptedConfig = localStorage.getItem('encrypted_wg_config');
-    // if (encryptedConfig) {
-    //   const decryptedConfig = decrypt(encryptedConfig);
-    //   return JSON.parse(decryptedConfig);
-    // }
-    
-    return this.currentConfig;
+    try {
+      console.log('Loading WireGuard config from secure storage');
+      
+      // In a real implementation, this would use platform-specific secure storage
+      const encryptedConfig = localStorage.getItem(this.secureStorageKey);
+      
+      if (!encryptedConfig) {
+        return null;
+      }
+      
+      // Decrypt the configuration
+      const decryptedConfig = await decryptData(encryptedConfig);
+      const config = JSON.parse(decryptedConfig) as WireGuardConfig;
+      
+      this.currentConfig = config;
+      return config;
+    } catch (error) {
+      console.error('Failed to load WireGuard config:', error);
+      // Don't throw here, just return null and let the caller handle it
+      return null;
+    }
   }
 
   /**
    * Connect to VPN using the provided or stored configuration
    * @param config Optional configuration to use for connection
+   * @returns Promise that resolves when connected
    */
-  async connect(config?: WireGuardConfig): Promise<void> {
+  async connect(config?: WireGuardConfig): Promise<boolean> {
     try {
       this.updateStatus('connecting');
+      
+      // Enable kill switch before attempting to connect
+      await killSwitchService.enable();
       
       const configToUse = config || await this.loadConfig();
       if (!configToUse) {
         throw this.createError('config_invalid', 'No VPN configuration found');
       }
       
-      // In a real implementation, this would interact with a native plugin,
-      // browser extension, or local service to establish the VPN connection
+      // In a real implementation, this would interact with the system's 
+      // WireGuard interface using platform-specific APIs
       console.log('Connecting to VPN with config:', configToUse);
+      
+      // Enable DNS leak protection
+      await dnsService.configureDns(configToUse.dns);
       
       // Simulate connection delay
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -103,41 +181,61 @@ class WireGuardService {
       this.updateStatus('connected');
       this.resetError();
       this.reconnectAttempts = 0;
+      this.connectionStartTime = Date.now();
+      
+      return true;
     } catch (error) {
       console.error('Failed to connect to VPN:', error);
       
+      // Disable kill switch if connection failed
+      await killSwitchService.disable();
+      
       if (error instanceof Error) {
         this.updateError(this.createError('unknown', error.message));
+      } else if ((error as ConnectionError).type) {
+        this.updateError(error as ConnectionError);
       } else {
         this.updateError(this.createError('unknown', 'Unknown connection error'));
       }
       
       this.updateStatus('disconnected');
+      return false;
     }
   }
 
   /**
    * Disconnect from the VPN
+   * @returns Promise that resolves when disconnected
    */
-  async disconnect(): Promise<void> {
+  async disconnect(): Promise<boolean> {
     try {
-      // In a real implementation, this would interact with a native plugin,
-      // browser extension, or local service to terminate the VPN connection
+      // In a real implementation, this would interact with the system's
+      // WireGuard interface to tear down the connection
       console.log('Disconnecting from VPN');
       
       // Stop monitoring connection stats
       this.stopStatsMonitoring();
+      
+      // Reset DNS to system defaults
+      await dnsService.resetDns();
+      
+      // Disable kill switch after disconnecting
+      await killSwitchService.disable();
       
       // Simulate disconnection delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       this.updateStatus('disconnected');
       this.resetError();
+      this.connectionStartTime = null;
+      
+      return true;
     } catch (error) {
       console.error('Failed to disconnect from VPN:', error);
       
       // Even if disconnection fails, consider the client as disconnected
       this.updateStatus('disconnected');
+      return false;
     }
   }
 
@@ -202,16 +300,32 @@ class WireGuardService {
   }
 
   /**
+   * Get the current connection uptime in seconds
+   * @returns Current connection uptime or 0 if not connected
+   */
+  getUptime(): number {
+    if (!this.connectionStartTime || !this.isConnected()) {
+      return 0;
+    }
+    
+    return Math.floor((Date.now() - this.connectionStartTime) / 1000);
+  }
+
+  /**
    * Enable or disable the kill switch
    * @param enabled Whether to enable the kill switch
    */
   async setKillSwitch(enabled: boolean): Promise<void> {
-    // In a real implementation, this would configure the system firewall
-    // or native application to block traffic when disconnected
-    console.log(`${enabled ? 'Enabling' : 'Disabling'} kill switch`);
-    
-    // For web apps, this would require a native plugin or daemon
-    localStorage.setItem('vpn_kill_switch', enabled ? 'enabled' : 'disabled');
+    try {
+      if (enabled) {
+        await killSwitchService.enable();
+      } else {
+        await killSwitchService.disable();
+      }
+    } catch (error) {
+      console.error(`Failed to ${enabled ? 'enable' : 'disable'} kill switch:`, error);
+      toast.error(`Failed to ${enabled ? 'enable' : 'disable'} kill switch`);
+    }
   }
 
   /**
@@ -219,12 +333,19 @@ class WireGuardService {
    * @param enabled Whether to enable DNS leak protection
    */
   async setDnsLeakProtection(enabled: boolean): Promise<void> {
-    // In a real implementation, this would configure DNS settings
-    // to ensure DNS requests go through the VPN
-    console.log(`${enabled ? 'Enabling' : 'Disabling'} DNS leak protection`);
-    
-    // For web apps, this would require a native plugin or daemon
-    localStorage.setItem('vpn_dns_leak_protection', enabled ? 'enabled' : 'disabled');
+    try {
+      if (enabled) {
+        // Use default DNS servers if not connected
+        const config = await this.loadConfig();
+        const dnsServers = config?.dns || ['1.1.1.1', '1.0.0.1'];
+        await dnsService.configureDns(dnsServers);
+      } else {
+        await dnsService.resetDns();
+      }
+    } catch (error) {
+      console.error(`Failed to ${enabled ? 'enable' : 'disable'} DNS leak protection:`, error);
+      toast.error(`Failed to ${enabled ? 'enable' : 'disable'} DNS leak protection`);
+    }
   }
 
   /**
@@ -282,10 +403,10 @@ class WireGuardService {
     // Stop any existing monitoring
     this.stopStatsMonitoring();
     
-    // Start a new interval to simulate stats updates
-    // In a real implementation, this would poll the VPN interface for stats
+    // Start a new interval to monitor stats
+    // In a real implementation, this would poll the WireGuard interface for stats
     this.statsInterval = setInterval(() => {
-      // Simulate random stats
+      // Simulate random stats for demonstration
       const stats: ConnectionStats = {
         bytesReceived: Math.floor(Math.random() * 1000000),
         bytesSent: Math.floor(Math.random() * 500000),
