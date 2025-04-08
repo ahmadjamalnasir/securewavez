@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AuthContainer from '@/components/auth/AuthContainer';
@@ -9,10 +9,11 @@ import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
 import OtpVerificationDialog from '@/components/auth/OtpVerificationDialog';
 import ResetPasswordForm from '@/components/auth/ResetPasswordForm';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("login");
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
@@ -33,6 +34,13 @@ export default function Auth() {
     phone?: string;
   } | null>(null);
   const [isPasswordReset, setIsPasswordReset] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/home');
+    }
+  }, [isAuthenticated, navigate]);
 
   // Reset all forms when switching tabs
   const handleTabChange = (value: string) => {
@@ -82,16 +90,12 @@ export default function Auth() {
           
           <TabsContent value="login">
             <LoginForm 
-              isLoading={isLoading} 
-              setIsLoading={setIsLoading} 
               setForgotPasswordOpen={setForgotPasswordOpen} 
             />
           </TabsContent>
           
           <TabsContent value="signup">
             <SignupForm 
-              isLoading={isLoading} 
-              setIsLoading={setIsLoading}
               onVerificationNeeded={handleVerificationNeeded}
             />
           </TabsContent>
@@ -106,8 +110,6 @@ export default function Auth() {
           </DialogHeader>
           
           <ForgotPasswordForm
-            isLoading={isLoading}
-            setIsLoading={setIsLoading}
             onClose={() => setForgotPasswordOpen(false)}
             onVerificationNeeded={(type, contact) => {
               setIsPasswordReset(true);
@@ -125,8 +127,6 @@ export default function Auth() {
           </DialogHeader>
           
           <ResetPasswordForm
-            isLoading={isLoading}
-            setIsLoading={setIsLoading}
             email={resetPasswordData.email}
             phone={resetPasswordData.phone}
             onClose={() => setResetPasswordOpen(false)}

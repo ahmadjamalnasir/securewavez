@@ -1,20 +1,16 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import GoogleIcon from './GoogleIcon';
 
 interface SignupFormProps {
-  isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
   onVerificationNeeded?: (type: 'email' | 'phone', contact: string, userData?: any) => void;
 }
 
-const SignupForm = ({ isLoading, setIsLoading, onVerificationNeeded }: SignupFormProps) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
+const SignupForm = ({ onVerificationNeeded }: SignupFormProps) => {
+  const { signup, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   
   // Signup form state
@@ -38,92 +34,52 @@ const SignupForm = ({ isLoading, setIsLoading, onVerificationNeeded }: SignupFor
     return re.test(phone);
   };
 
-  const handleSignupStepOne = (e: React.FormEvent) => {
+  const handleSignupStepOne = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate first step
     if (!signupForm.firstName || !signupForm.lastName || !signupForm.email || !signupForm.password || !signupForm.confirmPassword) {
-      return toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
+      return;
     }
     
     if (signupForm.password !== signupForm.confirmPassword) {
-      return toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive"
-      });
+      return;
     }
     
     if (!isValidEmail(signupForm.email)) {
-      return toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive"
-      });
+      return;
     }
 
     if (signupForm.phone && !isValidPhone(signupForm.phone)) {
-      return toast({
-        title: "Error",
-        description: "Please enter a valid phone number",
-        variant: "destructive"
-      });
+      return;
     }
+    
+    // Call the signup API
+    await signup({
+      firstName: signupForm.firstName,
+      lastName: signupForm.lastName,
+      email: signupForm.email,
+      password: signupForm.password,
+      phone: signupForm.phone || undefined
+    });
     
     // Check if we should use the onVerificationNeeded callback
     if (onVerificationNeeded) {
-      setIsLoading(true);
-      
-      // Simulate sending OTP - removed toast notification
-      setTimeout(() => {
-        setIsLoading(false);
-        
-        // Call the verification needed callback
-        onVerificationNeeded('email', signupForm.email, {
-          firstName: signupForm.firstName,
-          lastName: signupForm.lastName,
-          email: signupForm.email,
-          password: signupForm.password,
-          phone: signupForm.phone
-        });
-      }, 1000);
-    } else {
-      // Original code path for direct navigation
-      setIsLoading(true);
-      
-      // Simulate sending OTP - removed toast notification
-      setTimeout(() => {
-        setIsLoading(false);
-        
-        // Navigate to OTP confirmation page with verification data
-        navigate('/otp-confirmation', {
-          state: {
-            verificationType: 'email',
-            contact: signupForm.email,
-            firstName: signupForm.firstName,
-            lastName: signupForm.lastName,
-            email: signupForm.email,
-            password: signupForm.password,
-            phone: signupForm.phone
-          }
-        });
-      }, 1000);
+      // Call the verification needed callback
+      onVerificationNeeded('email', signupForm.email, {
+        firstName: signupForm.firstName,
+        lastName: signupForm.lastName,
+        email: signupForm.email,
+        password: signupForm.password,
+        phone: signupForm.phone
+      });
     }
   };
 
   const handleGoogleSignIn = () => {
-    setIsLoading(true);
-    
-    // Simulate OAuth API call - removed toast notification
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      navigate('/home');
-    }, 1500);
+    // This would integrate with the Google OAuth API
+    // For now, it's just a placeholder
+    alert('Google Sign Up is not implemented yet');
   };
 
   return (

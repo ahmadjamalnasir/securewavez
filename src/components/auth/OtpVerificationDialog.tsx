@@ -1,7 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { Check, X, Mail, Phone, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { useAuth } from '@/context/AuthContext';
 
 type VerificationType = 'email' | 'phone';
 
@@ -38,8 +39,7 @@ const OtpVerificationDialog = ({
   isSignUp = false,
   signUpData,
 }: OtpVerificationDialogProps) => {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const { verifyOtp, resendOtp, isLoading } = useAuth();
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [verificationState, setVerificationState] = useState<'idle' | 'success' | 'error'>('idle');
@@ -53,7 +53,7 @@ const OtpVerificationDialog = ({
     }
   }, [isOpen]);
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (otp.length !== 6) {
@@ -62,42 +62,34 @@ const OtpVerificationDialog = ({
     }
     
     setError('');
-    setIsLoading(true);
     
-    // Simulate verification
-    setTimeout(() => {
-      setIsLoading(false);
+    // Call the API to verify the OTP
+    const success = await verifyOtp({
+      verificationType,
+      contact,
+      otp,
+      isSignUp
+    });
+    
+    if (success) {
+      setVerificationState('success');
       
-      // For demo purposes, any code except "000000" is considered valid
-      if (otp === '000000') {
-        setVerificationState('error');
-        setError('Invalid verification code');
-      } else {
-        setVerificationState('success');
-        
-        // Show success toast
-        toast({
-          title: "Verification Successful",
-          description: `Your ${verificationType} has been verified successfully.`
-        });
-        
-        // Wait a bit before calling the success callback
-        setTimeout(() => {
-          onSuccess();
-          // Reset the dialog state
-          setVerificationState('idle');
-          setOtp('');
-          onClose();
-        }, 1500);
-      }
-    }, 1500);
+      // Wait a bit before calling the success callback
+      setTimeout(() => {
+        onSuccess();
+        // Reset the dialog state
+        setVerificationState('idle');
+        setOtp('');
+        onClose();
+      }, 1500);
+    } else {
+      setVerificationState('error');
+      setError('Invalid verification code');
+    }
   };
   
-  const handleResendCode = () => {
-    toast({
-      title: "Code Resent",
-      description: `A new verification code has been sent to your ${verificationType}.`
-    });
+  const handleResendCode = async () => {
+    await resendOtp(verificationType, contact);
   };
   
   const resetDialog = () => {

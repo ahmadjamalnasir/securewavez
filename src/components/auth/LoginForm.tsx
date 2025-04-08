@@ -1,20 +1,17 @@
+
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import GoogleIcon from './GoogleIcon';
 
 interface LoginFormProps {
-  isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
   setForgotPasswordOpen: (open: boolean) => void;
 }
 
-const LoginForm = ({ isLoading, setIsLoading, setForgotPasswordOpen }: LoginFormProps) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
+const LoginForm = ({ setForgotPasswordOpen }: LoginFormProps) => {
+  const { login, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   
   const [loginForm, setLoginForm] = useState({
@@ -22,39 +19,25 @@ const LoginForm = ({ isLoading, setIsLoading, setForgotPasswordOpen }: LoginForm
     password: ''
   });
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
     // Simple validation
     if (!loginForm.email || !loginForm.password) {
-      setIsLoading(false);
-      return toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
+      return;
     }
     
-    // Simulate login API call
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Success, navigate to home - removed toast notification
-      navigate('/home');
-    }, 1500);
+    // Call the login method from AuthContext
+    await login({
+      email: loginForm.email,
+      password: loginForm.password
+    });
   };
   
   const handleGoogleSignIn = () => {
-    setIsLoading(true);
-    
-    // Simulate OAuth API call
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      // Success - removed toast notification
-      navigate('/home');
-    }, 1500);
+    // This would integrate with the Google OAuth API
+    // For now, it's just a placeholder
+    alert('Google Sign In is not implemented yet');
   };
 
   return (

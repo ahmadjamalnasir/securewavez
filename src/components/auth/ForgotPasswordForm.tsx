@@ -3,63 +3,45 @@ import { useState } from 'react';
 import { Mail, Phone, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/context/AuthContext';
 
 interface ForgotPasswordFormProps {
-  isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
   onClose: () => void;
   onVerificationNeeded: (type: 'email' | 'phone', contact: string) => void;
 }
 
 const ForgotPasswordForm = ({ 
-  isLoading, 
-  setIsLoading, 
   onClose,
   onVerificationNeeded 
 }: ForgotPasswordFormProps) => {
-  const { toast } = useToast();
+  const { forgotPassword, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [activeTab, setActiveTab] = useState('email');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (activeTab === 'email' && !email) {
-      return toast({
-        title: "Error",
-        description: "Please enter your email address",
-        variant: "destructive"
-      });
+      return;
     }
     
     if (activeTab === 'phone' && !phone) {
-      return toast({
-        title: "Error",
-        description: "Please enter your phone number",
-        variant: "destructive"
-      });
+      return;
     }
     
-    setIsLoading(true);
+    // Call the forgot password API
+    await forgotPassword(
+      activeTab as 'email' | 'phone',
+      activeTab === 'email' ? email : phone
+    );
     
-    // Simulate sending OTP
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      toast({
-        title: "OTP Sent",
-        description: `A verification code has been sent to your ${activeTab === 'email' ? 'email' : 'phone'}`,
-      });
-      
-      // Call the onVerificationNeeded callback
-      onVerificationNeeded(
-        activeTab as 'email' | 'phone',
-        activeTab === 'email' ? email : phone
-      );
-    }, 1000);
+    // Call the onVerificationNeeded callback
+    onVerificationNeeded(
+      activeTab as 'email' | 'phone',
+      activeTab === 'email' ? email : phone
+    );
   };
 
   return (
