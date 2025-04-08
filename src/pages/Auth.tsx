@@ -10,10 +10,11 @@ import OtpVerificationDialog from '@/components/auth/OtpVerificationDialog';
 import ResetPasswordForm from '@/components/auth/ResetPasswordForm';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("login");
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
@@ -39,6 +40,7 @@ export default function Auth() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
+      toast.success('You are logged in!');
       navigate('/home');
     }
   }, [isAuthenticated, navigate]);
@@ -63,6 +65,7 @@ export default function Auth() {
   const handleVerificationSuccess = () => {
     if (signUpData) {
       // This was from signup, navigate to home
+      toast.success('Account created successfully!');
       setTimeout(() => {
         navigate('/home');
       }, 500);
@@ -79,6 +82,15 @@ export default function Auth() {
       setIsPasswordReset(false);
     }
   };
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="animate-spin h-10 w-10 border-4 border-vpn-blue border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
 
   return (
     <>

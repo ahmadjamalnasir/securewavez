@@ -5,6 +5,11 @@ import { toast } from 'sonner';
 // API base URL - in a real environment, this would come from env variables
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.yourvpnservice.com';
 
+// Log the API URL during development
+if (import.meta.env.DEV) {
+  console.log('API URL:', API_BASE_URL);
+}
+
 // Create axios instance
 const axiosClient = axios.create({
   baseURL: API_BASE_URL,
@@ -69,9 +74,17 @@ axiosClient.interceptors.response.use(
         if (Array.isArray(firstError) && firstError.length > 0) {
           toast.error(firstError[0]);
         }
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
       } else {
         toast.error('Validation error. Please check your input.');
       }
+    }
+    
+    // For other error types, show a generic message if no specific handling
+    if (!statusCode || ![401, 404, 422].includes(statusCode) && statusCode < 500) {
+      const errorMessage = error.response?.data?.message || 'An unexpected error occurred';
+      toast.error(errorMessage);
     }
     
     return Promise.reject(error);
