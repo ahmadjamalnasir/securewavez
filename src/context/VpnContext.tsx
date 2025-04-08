@@ -4,6 +4,10 @@ import { VpnState, Server, VpnContextType } from '@/types/vpn';
 import { sampleServers } from '@/data/servers';
 import { showNotification, getBestServer } from '@/utils/vpnUtils';
 import { toast } from 'sonner';
+import { useWireGuard } from '@/hooks/use-wireguard';
+import { ConnectionStats } from '@/types/wireguard';
+import vpnApi from '@/api/vpnApi';
+import { useQuery } from '@tanstack/react-query';
 
 // Create context with default values
 const VpnContext = createContext<VpnContextType | undefined>(undefined);
@@ -21,8 +25,28 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ipAddress: '0.0.0.0',
     favoriteServers: []
   });
-  const [servers, setServers] = useState<Server[]>(sampleServers);
-  const [connectionInterval, setConnectionInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Fetch servers using React Query
+  const { data: serversData, isLoading: serversLoading } = useQuery({
+    queryKey: ['vpnServers'],
+    queryFn: () => vpnApi.getServers(),
+    onError: (error) => {
+      console.error('Failed to fetch servers:', error);
+      toast.error('Failed to load VPN servers');
+    },
+    // Use sample data in development mode
+    initialData: import.meta.env.DEV ? sampleServers : undefined,
+  });
+  
+  const servers = serversData ?? sampleServers;
+
+  // Use the WireGuard hook
+  const {
+    status: wireguardStatus,
+    stats: wireguardStats,
+    connect: connectWireGuard,
+    disconnect: disconnectWireGuard,
+  } = useWireGuard();
 
   // Initialize the smart server
   const [smartServer, setSmartServer] = useState<Server>(getBestServer(servers));
@@ -48,6 +72,37 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSmartServer(getBestServer(servers));
   }, [servers]);
 
+  // Update the VPN state based on WireGuard status and stats
+  useEffect(() => {
+    setVpnState(prev => ({
+      ...prev,
+      status: wireguardStatus === 'connected' ? 'connected' : 
+             wireguardStatus === 'connecting' || wireguardStatus === 'reconnecting' ? 'connecting' : 
+             'disconnected'
+    }));
+    
+    // Update connection time when connected
+    if (wireguardStatus === 'connected' && prev.status !== 'connected') {
+      setVpnState(prev => ({
+        ...prev,
+        connectionTime: Date.now()
+      }));
+    }
+  }, [wireguardStatus]);
+
+  // Update VPN stats when WireGuard stats change
+  useEffect(() => {
+    if (wireguardStats) {
+      setVpnState(prev => ({
+        ...prev,
+        downloadSpeed: calculateSpeed(wireguardStats.bytesReceived, 'download'),
+        uploadSpeed: calculateSpeed(wireguardStats.bytesSent, 'upload'),
+        ping: wireguardStats.latency,
+        dataUsed: calculateDataUsed(wireguardStats)
+      }));
+    }
+  }, [wireguardStats]);
+
   // Simulate loading initial data
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -63,7 +118,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [smartServer]);
 
   // Function to connect to VPN
-  const connect = (onSuccess?: () => void) => {
+  const connect = async (onSuccess?: () => void) => {
     // If no server is selected, use the smart server
     if (!vpnState.selectedServer) {
       selectServer(smartServer);
@@ -73,64 +128,19 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // First set status to connecting
     setVpnState(prev => ({ ...prev, status: 'connecting' }));
     
-    // Simulate connection delay
-    setTimeout(() => {
-      setVpnState(prev => ({
-        ...prev,
-        status: 'connected',
-        ping: prev.selectedServer?.ping || 50,
-        ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        connectionTime: Date.now()
-      }));
-      
-      // Start interval to update stats while connected
-      const interval = setInterval(() => {
-        setVpnState(prev => ({
-          ...prev,
-          downloadSpeed: Math.floor(Math.random() * 10) + 5, // 5-15 Mbps
-          uploadSpeed: Math.floor(Math.random() * 5) + 2, // 2-7 Mbps
-          dataUsed: prev.dataUsed + (Math.random() * 0.1) // Add 0-0.1 MB
-        }));
-      }, 3000);
-      
-      setConnectionInterval(interval);
-      
-      // Show connection success notification if enabled
-      showNotification(
-        "Connected", 
-        `Successfully connected to ${vpnState.selectedServer?.name || 'VPN'}`
-      );
-      
-      // Call the onSuccess callback only when connection is successful
-      if (onSuccess) {
-        onSuccess();
-      }
-    }, 2000);
+    // Connect using WireGuard
+    const success = await connectWireGuard(vpnState.selectedServer);
+    
+    if (success && onSuccess) {
+      onSuccess();
+    }
   };
   
   // Function to disconnect from VPN
-  const disconnect = (onSuccess?: () => void) => {
-    if (connectionInterval) {
-      clearInterval(connectionInterval);
-      setConnectionInterval(null);
-    }
+  const disconnect = async (onSuccess?: () => void) => {
+    const success = await disconnectWireGuard();
     
-    setVpnState(prev => ({
-      ...prev,
-      status: 'disconnected',
-      downloadSpeed: 0,
-      uploadSpeed: 0,
-      connectionTime: 0
-    }));
-    
-    // Show disconnection notification if enabled
-    showNotification(
-      "Disconnected", 
-      `Successfully disconnected from ${vpnState.selectedServer?.name || 'VPN'}`
-    );
-    
-    // Call the onSuccess callback
-    if (onSuccess) {
+    if (success && onSuccess) {
       onSuccess();
     }
   };
@@ -173,14 +183,20 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
   
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      if (connectionInterval) {
-        clearInterval(connectionInterval);
-      }
-    };
-  }, [connectionInterval]);
+  // Helper function to calculate download/upload speed
+  const calculateSpeed = (bytes: number, type: 'download' | 'upload'): number => {
+    // In a real implementation, this would calculate the speed based on
+    // the change in bytes over time
+    return type === 'download' 
+      ? Math.floor(Math.random() * 10) + 5 // 5-15 Mbps
+      : Math.floor(Math.random() * 5) + 2; // 2-7 Mbps
+  };
+  
+  // Helper function to calculate total data used
+  const calculateDataUsed = (stats: ConnectionStats): number => {
+    // Convert bytes to MB
+    return (stats.bytesReceived + stats.bytesSent) / (1024 * 1024);
+  };
   
   const value = {
     vpnState,
@@ -188,7 +204,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     connect,
     disconnect,
     selectServer,
-    isLoading,
+    isLoading: isLoading || serversLoading,
     smartServer,
     toggleFavorite
   };
