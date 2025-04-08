@@ -26,16 +26,18 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     favoriteServers: []
   });
   
-  // Fetch servers using React Query
+  // Fetch servers using React Query - fixed the useQuery configuration
   const { data: serversData, isLoading: serversLoading } = useQuery({
     queryKey: ['vpnServers'],
     queryFn: () => vpnApi.getServers(),
-    onError: (error) => {
-      console.error('Failed to fetch servers:', error);
-      toast.error('Failed to load VPN servers');
-    },
-    // Use sample data in development mode
+    // Error handling moved to onSettled with meta option
     initialData: import.meta.env.DEV ? sampleServers : undefined,
+    meta: {
+      onError: (error: Error) => {
+        console.error('Failed to fetch servers:', error);
+        toast.error('Failed to load VPN servers');
+      }
+    }
   });
   
   const servers = serversData ?? sampleServers;
@@ -74,27 +76,27 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Update the VPN state based on WireGuard status and stats
   useEffect(() => {
-    setVpnState(prev => ({
-      ...prev,
+    setVpnState(prevState => ({
+      ...prevState,
       status: wireguardStatus === 'connected' ? 'connected' : 
              wireguardStatus === 'connecting' || wireguardStatus === 'reconnecting' ? 'connecting' : 
              'disconnected'
     }));
     
     // Update connection time when connected
-    if (wireguardStatus === 'connected' && prev.status !== 'connected') {
-      setVpnState(prev => ({
-        ...prev,
+    if (wireguardStatus === 'connected' && vpnState.status !== 'connected') {
+      setVpnState(prevState => ({
+        ...prevState,
         connectionTime: Date.now()
       }));
     }
-  }, [wireguardStatus]);
+  }, [wireguardStatus, vpnState.status]);
 
   // Update VPN stats when WireGuard stats change
   useEffect(() => {
     if (wireguardStats) {
-      setVpnState(prev => ({
-        ...prev,
+      setVpnState(prevState => ({
+        ...prevState,
         downloadSpeed: calculateSpeed(wireguardStats.bytesReceived, 'download'),
         uploadSpeed: calculateSpeed(wireguardStats.bytesSent, 'upload'),
         ping: wireguardStats.latency,
@@ -107,8 +109,8 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const timer = setTimeout(() => {
       // Set Smart Server as default selected server
-      setVpnState(prev => ({
-        ...prev,
+      setVpnState(prevState => ({
+        ...prevState,
         selectedServer: smartServer
       }));
       setIsLoading(false);
@@ -126,7 +128,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     
     // First set status to connecting
-    setVpnState(prev => ({ ...prev, status: 'connecting' }));
+    setVpnState(prevState => ({ ...prevState, status: 'connecting' }));
     
     // Connect using WireGuard
     const success = await connectWireGuard(vpnState.selectedServer);
@@ -147,7 +149,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   // Function to select a server
   const selectServer = (server: Server) => {
-    setVpnState(prev => ({ ...prev, selectedServer: server }));
+    setVpnState(prevState => ({ ...prevState, selectedServer: server }));
     
     // If already connected, reconnect to new server
     if (vpnState.status === 'connected') {
@@ -160,11 +162,11 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   // Function to toggle a server as favorite
   const toggleFavorite = (serverId: string) => {
-    setVpnState(prev => {
-      const isFavorite = prev.favoriteServers.includes(serverId);
+    setVpnState(prevState => {
+      const isFavorite = prevState.favoriteServers.includes(serverId);
       const updatedFavorites = isFavorite
-        ? prev.favoriteServers.filter(id => id !== serverId)
-        : [...prev.favoriteServers, serverId];
+        ? prevState.favoriteServers.filter(id => id !== serverId)
+        : [...prevState.favoriteServers, serverId];
       
       // Save to localStorage for persistence
       localStorage.setItem('vpnFavoriteServers', JSON.stringify(updatedFavorites));
@@ -177,7 +179,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       
       return {
-        ...prev,
+        ...prevState,
         favoriteServers: updatedFavorites
       };
     });

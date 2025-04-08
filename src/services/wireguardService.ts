@@ -1,5 +1,4 @@
-
-import { WireGuardConfig, ConnectionError, ConnectionStatus, ConnectionStats } from '@/types/wireguard';
+import { WireGuardConfig, ConnectionError, ConnectionStatus, ConnectionStats, ConnectionErrorType } from '@/types/wireguard';
 import { Server } from '@/types/vpn';
 
 /**
