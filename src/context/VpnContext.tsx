@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { VpnState, Server, VpnContextType } from '@/types/vpn';
 import { sampleServers } from '@/data/servers';
 import { showNotification, getBestServer } from '@/utils/vpnUtils';
+import { toast } from 'sonner';
 
 // Create context with default values
 const VpnContext = createContext<VpnContextType | undefined>(undefined);
@@ -17,13 +18,30 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ping: 0,
     dataUsed: 0,
     connectionTime: 0,
-    ipAddress: '0.0.0.0'
+    ipAddress: '0.0.0.0',
+    favoriteServers: []
   });
   const [servers, setServers] = useState<Server[]>(sampleServers);
   const [connectionInterval, setConnectionInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Initialize the smart server
   const [smartServer, setSmartServer] = useState<Server>(getBestServer(servers));
+
+  // Load favorite servers from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedFavorites = localStorage.getItem('vpnFavoriteServers');
+      if (savedFavorites) {
+        const parsedFavorites = JSON.parse(savedFavorites);
+        setVpnState(prev => ({
+          ...prev,
+          favoriteServers: parsedFavorites
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading favorite servers:', error);
+    }
+  }, []);
 
   // Update the smart server whenever servers data changes
   useEffect(() => {
@@ -130,6 +148,31 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
   
+  // Function to toggle a server as favorite
+  const toggleFavorite = (serverId: string) => {
+    setVpnState(prev => {
+      const isFavorite = prev.favoriteServers.includes(serverId);
+      const updatedFavorites = isFavorite
+        ? prev.favoriteServers.filter(id => id !== serverId)
+        : [...prev.favoriteServers, serverId];
+      
+      // Save to localStorage for persistence
+      localStorage.setItem('vpnFavoriteServers', JSON.stringify(updatedFavorites));
+      
+      // Show toast notification
+      if (isFavorite) {
+        toast.info('Removed from favorites');
+      } else {
+        toast.success('Added to favorites');
+      }
+      
+      return {
+        ...prev,
+        favoriteServers: updatedFavorites
+      };
+    });
+  };
+  
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -146,7 +189,8 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     disconnect,
     selectServer,
     isLoading,
-    smartServer
+    smartServer,
+    toggleFavorite
   };
   
   return <VpnContext.Provider value={value}>{children}</VpnContext.Provider>;
@@ -162,4 +206,3 @@ export const useVpn = () => {
 };
 
 export type { Server };
-

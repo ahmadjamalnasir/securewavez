@@ -1,24 +1,41 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVpn } from '@/context/VpnContext';
 import type { Server } from '@/types/vpn';
-import { Check, Search, Signal, Lock, Zap, Globe, Shield } from 'lucide-react';
+import { Check, Search, Signal, Lock, Zap, Shield, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FadeIn from '@/components/animations/FadeIn';
 import { useAuth } from '@/context/AuthContext';
+import ServerFilters, { LoadFilter, PingFilter, ServerSort } from './ServerFilters';
+import { Button } from '@/components/ui/button';
 
 export default function ServerList() {
-  const { servers, selectServer, vpnState, smartServer, connect, isLoading } = useVpn();
+  const { servers, selectServer, vpnState, smartServer, connect, isLoading, toggleFavorite } = useVpn();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [loadFilter, setLoadFilter] = useState<LoadFilter>('all');
+  const [pingFilter, setPingFilter] = useState<PingFilter>('all');
+  const [sortBy, setSortBy] = useState<ServerSort>('recommended');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [filteredServers, setFilteredServers] = useState<Server[]>([]);
   const navigate = useNavigate();
+  
+  // Get unique countries for filter
+  const uniqueCountries = useMemo(() => {
+    return Array.from(new Set(servers.map(server => server.country))).sort();
+  }, [servers]);
   
   // Apply filters to servers
   useEffect(() => {
     let result = servers;
+    
+    // Mark favorite servers
+    result = result.map(server => ({
+      ...server,
+      isFavorite: vpnState.favoriteServers.includes(server.id)
+    }));
     
     // Apply search filter
     if (searchQuery) {
@@ -34,51 +51,138 @@ export default function ServerList() {
       result = result.filter(server => server.country === selectedCountry);
     }
     
+    // Apply favorites filter
+    if (showFavoritesOnly) {
+      result = result.filter(server => vpnState.favoriteServers.includes(server.id));
+    }
+    
+    // Apply load filter
+    if (loadFilter !== 'all') {
+      result = result.filter(server => {
+        if (loadFilter === 'low') return server.load < 30;
+        if (loadFilter === 'medium') return server.load >= 30 && server.load < 70;
+        if (loadFilter === 'high') return server.load >= 70;
+        return true;
+      });
+    }
+    
+    // Apply ping filter
+    if (pingFilter !== 'all') {
+      result = result.filter(server => {
+        if (pingFilter === 'excellent') return server.ping < 50;
+        if (pingFilter === 'good') return server.ping < 100;
+        return true; // 'fair' includes all
+      });
+    }
+    
+    // Apply sorting
+    result = [...result].sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'ping') return a.ping - b.ping;
+      if (sortBy === 'load') return a.load - b.load;
+      
+      // Default 'recommended' sort: 
+      // Smart server first, then by a combination of ping and load
+      if (a.isSmartServer) return -1;
+      if (b.isSmartServer) return 1;
+      
+      // Calculate a score (lower is better)
+      const scoreA = a.ping * 0.7 + a.load * 0.3;
+      const scoreB = b.ping * 0.7 + b.load * 0.3;
+      return scoreA - scoreB;
+    });
+    
     // Filter premium servers if user doesn't have a premium subscription
-    // This is a placeholder - in a real app, you'd check the user's subscription status
     const hasPremiumSubscription = user?.isVerified; // Using isVerified as a placeholder for premium status
     if (!hasPremiumSubscription) {
       result = result.filter(server => !server.premium);
     }
     
     setFilteredServers(result);
-  }, [searchQuery, selectedCountry, servers, user]);
+  }, [searchQuery, selectedCountry, loadFilter, pingFilter, sortBy, servers, user, vpnState.favoriteServers, showFavoritesOnly]);
   
-  // Get unique countries for filter dropdown
-  const uniqueCountries = Array.from(new Set(servers.map(server => server.country))).sort();
+  // Group regular servers by country (not the smart server or selected server)
+  const regularServers = useMemo(() => {
+    return filteredServers.filter(server => 
+      server.id !== 'smart' && 
+      (!vpnState.selectedServer || server.id !== vpnState.selectedServer.id)
+    );
+  }, [filteredServers, vpnState.selectedServer]);
   
-  // Only group regular servers by country (not the smart server or selected server)
-  const regularServers = filteredServers.filter(server => 
-    server.id !== 'smart' && 
-    (!vpnState.selectedServer || server.id !== vpnState.selectedServer.id)
-  );
-  
-  const groupedServers = regularServers.reduce((acc, server) => {
-    if (!acc[server.country]) {
-      acc[server.country] = [];
-    }
-    acc[server.country].push(server);
-    return acc;
-  }, {} as Record<string, Server[]>);
+  const groupedServers = useMemo(() => {
+    return regularServers.reduce((acc, server) => {
+      if (!acc[server.country]) {
+        acc[server.country] = [];
+      }
+      acc[server.country].push(server);
+      return acc;
+    }, {} as Record<string, Server[]>);
+  }, [regularServers]);
   
   // Should we show the current selected server
-  const showSelectedServer = 
-    vpnState.selectedServer && 
-    (!searchQuery || 
-      vpnState.selectedServer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vpnState.selectedServer.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vpnState.selectedServer.city.toLowerCase().includes(searchQuery.toLowerCase())
-    ) &&
-    (!selectedCountry || vpnState.selectedServer.country === selectedCountry);
+  const showSelectedServer = useMemo(() => {
+    if (!vpnState.selectedServer) return false;
+    
+    // Apply text search
+    if (searchQuery && 
+        !vpnState.selectedServer.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !vpnState.selectedServer.country.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !vpnState.selectedServer.city.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    
+    // Apply country filter
+    if (selectedCountry && vpnState.selectedServer.country !== selectedCountry) {
+      return false;
+    }
+    
+    // Apply favorites filter
+    if (showFavoritesOnly && !vpnState.favoriteServers.includes(vpnState.selectedServer.id)) {
+      return false;
+    }
+    
+    // Apply load filter
+    if (loadFilter !== 'all') {
+      const load = vpnState.selectedServer.load;
+      if (loadFilter === 'low' && load >= 30) return false;
+      if (loadFilter === 'medium' && (load < 30 || load >= 70)) return false;
+      if (loadFilter === 'high' && load < 70) return false;
+    }
+    
+    // Apply ping filter
+    if (pingFilter !== 'all') {
+      const ping = vpnState.selectedServer.ping;
+      if (pingFilter === 'excellent' && ping >= 50) return false;
+      if (pingFilter === 'good' && ping >= 100) return false;
+    }
+    
+    return true;
+  }, [vpnState.selectedServer, searchQuery, selectedCountry, loadFilter, pingFilter, showFavoritesOnly, vpnState.favoriteServers]);
   
   // Should we show Smart Server in the list (and it's not already the selected server)
-  const showSmartServer = 
-    (!vpnState.selectedServer || vpnState.selectedServer.id !== 'smart') && 
-    (!searchQuery || 
-      'smart server'.includes(searchQuery.toLowerCase()) || 
-      'auto select'.includes(searchQuery.toLowerCase())
-    ) &&
-    !selectedCountry;
+  const showSmartServer = useMemo(() => {
+    if (vpnState.selectedServer?.id === 'smart') return false;
+    
+    // Apply text search
+    if (searchQuery && 
+      !('smart server'.includes(searchQuery.toLowerCase()) || 
+        'auto select'.includes(searchQuery.toLowerCase()))) {
+      return false;
+    }
+    
+    // Don't show with country filter
+    if (selectedCountry) return false;
+    
+    // Don't show with load or ping filters
+    if (loadFilter !== 'all' || pingFilter !== 'all') return false;
+    
+    // Show in favorites only if it's a favorite
+    if (showFavoritesOnly && !vpnState.favoriteServers.includes('smart')) {
+      return false;
+    }
+    
+    return true;
+  }, [vpnState.selectedServer, searchQuery, selectedCountry, loadFilter, pingFilter, showFavoritesOnly, vpnState.favoriteServers]);
   
   // Function to handle server selection and navigation
   const handleServerSelect = (server: Server) => {
@@ -102,6 +206,12 @@ export default function ServerList() {
     }, 300);
   };
   
+  // Function to handle favorite toggle
+  const handleFavoriteToggle = (e: React.MouseEvent, serverId: string) => {
+    e.stopPropagation(); // Prevent server selection
+    toggleFavorite(serverId);
+  };
+  
   // Function to get ping indicator color
   const getPingColor = (ping: number) => {
     if (ping < 60) return 'bg-green-500';
@@ -121,6 +231,7 @@ export default function ServerList() {
     // Check if server is premium and user doesn't have premium subscription
     const hasPremiumSubscription = user?.isVerified; // Using isVerified as a placeholder for premium status
     const isPremiumLocked = server.premium && !hasPremiumSubscription;
+    const isFavorite = vpnState.favoriteServers.includes(server.id);
     
     return (
       <div 
@@ -159,6 +270,21 @@ export default function ServerList() {
           </div>
           
           <div className="flex items-center space-x-2">
+            {/* Favorite button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={(e) => handleFavoriteToggle(e, server.id)}
+            >
+              <Star 
+                className={cn(
+                  "w-4 h-4 transition-colors",
+                  isFavorite ? "text-yellow-500 fill-yellow-500" : ""
+                )} 
+              />
+            </Button>
+            
             {server.premium && (
               <div className={cn(
                 "p-1 rounded",
@@ -215,36 +341,20 @@ export default function ServerList() {
           />
         </div>
         
-        {/* Country filter */}
-        <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-thin">
-          <button
-            className={cn(
-              "flex items-center space-x-1 px-3 py-1.5 rounded-full text-sm whitespace-nowrap",
-              selectedCountry === null 
-                ? "bg-vpn-blue text-white" 
-                : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
-            )}
-            onClick={() => setSelectedCountry(null)}
-          >
-            <Globe className="w-4 h-4" />
-            <span>All Countries</span>
-          </button>
-          
-          {uniqueCountries.map(country => (
-            <button
-              key={country}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-sm whitespace-nowrap",
-                selectedCountry === country 
-                  ? "bg-vpn-blue text-white" 
-                  : "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
-              )}
-              onClick={() => setSelectedCountry(country === selectedCountry ? null : country)}
-            >
-              {country}
-            </button>
-          ))}
-        </div>
+        {/* Server filters component */}
+        <ServerFilters
+          selectedCountry={selectedCountry}
+          onCountryChange={setSelectedCountry}
+          countries={uniqueCountries}
+          loadFilter={loadFilter}
+          onLoadFilterChange={setLoadFilter}
+          pingFilter={pingFilter}
+          onPingFilterChange={setPingFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          showFavoritesOnly={showFavoritesOnly}
+          onShowFavoritesOnly={setShowFavoritesOnly}
+        />
       </div>
       
       {/* Loading state */}

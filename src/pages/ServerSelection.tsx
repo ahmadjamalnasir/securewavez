@@ -1,9 +1,12 @@
 
 import { Globe, MapPin, Zap } from 'lucide-react';
+import { lazy, Suspense } from 'react';
 import Layout from '@/components/layout/Layout';
-import ServerList from '@/components/vpn/ServerList';
 import FadeIn from '@/components/animations/FadeIn';
 import { useVpn } from '@/context/VpnContext';
+
+// Lazy load ServerList component for code splitting
+const ServerList = lazy(() => import('@/components/vpn/ServerList'));
 
 export default function ServerSelection() {
   const { vpnState } = useVpn();
@@ -68,7 +71,13 @@ export default function ServerSelection() {
         </FadeIn>
         
         <FadeIn delay={300}>
-          <ServerList />
+          <Suspense fallback={
+            <div className="vpn-card flex justify-center items-center py-16">
+              <div className="animate-spin h-10 w-10 border-4 border-vpn-blue border-t-transparent rounded-full"></div>
+            </div>
+          }>
+            <ServerList />
+          </Suspense>
         </FadeIn>
       </div>
     </Layout>

@@ -9,6 +9,7 @@ export interface VpnState {
   dataUsed: number;
   connectionTime: number;
   ipAddress: string;
+  favoriteServers: string[]; // Array of server IDs that are favorites
 }
 
 // Define a server object
@@ -22,6 +23,7 @@ export interface Server {
   load: number;
   premium: boolean;
   isSmartServer?: boolean;
+  isFavorite?: boolean; // Flag to indicate if server is a favorite
 }
 
 // Context interface
@@ -33,4 +35,5 @@ export interface VpnContextType {
   selectServer: (server: Server) => void;
   isLoading: boolean;
   smartServer: Server;
+  toggleFavorite: (serverId: string) => void; // Toggle favorite status
 }
