@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { VpnState, Server, VpnContextType, ConnectionStats, VpnSettings } from '@/types/vpn';
+import { VpnState, Server, VpnContextType, ConnectionStats, VpnSettings as VpnTypeSettings } from '@/types/vpn';
 import { sampleServers } from '@/data/servers';
 import { showNotification, getBestServer } from '@/utils/vpnUtils';
 import { toast } from 'sonner';
@@ -8,11 +7,13 @@ import { useWireGuard } from '@/hooks/use-wireguard';
 import vpnApi from '@/api/vpnApi';
 import { useQuery } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
+import { VpnSettings as ApiVpnSettings } from '@/api/settingsApi';
 
 // Create context with default values
 const VpnContext = createContext<VpnContextType | undefined>(undefined);
 
 export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  
   const [isLoading, setIsLoading] = useState(true);
   const [vpnState, setVpnState] = useState<VpnState>({
     status: 'disconnected',
@@ -27,6 +28,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   
   const { settings, updateSettings } = useSettings();
+  
   
   // Fetch servers using React Query - fixed the useQuery configuration
   const { data: serversData, isLoading: serversLoading } = useQuery({
@@ -212,11 +214,11 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return (stats.bytesReceived + stats.bytesSent) / (1024 * 1024);
   };
   
-  // Function to update VPN settings
-  const updateVpnSettings = async (newSettings: Partial<VpnSettings>): Promise<void> => {
+  // Function to update VPN settings - Fix the type casting here
+  const updateVpnSettings = async (newSettings: Partial<VpnTypeSettings>): Promise<void> => {
     try {
-      // In a real implementation, this would call an API to update settings
-      await updateSettings(newSettings);
+      // Cast the type explicitly to match what updateSettings expects
+      await updateSettings(newSettings as Partial<ApiVpnSettings>);
     } catch (error) {
       console.error('Failed to update VPN settings:', error);
       toast.error('Failed to update VPN settings');
@@ -246,7 +248,7 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isDisconnecting,
     currentServer,
     connectionStats,
-    vpnSettings: settings, // Use settings from useSettings hook
+    vpnSettings: settings as unknown as VpnTypeSettings | null, // Cast to match expected type
     updateVpnSettings
   };
   

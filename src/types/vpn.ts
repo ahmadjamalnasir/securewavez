@@ -34,15 +34,15 @@ export interface ConnectionStats {
   uptime: number;
 }
 
-// Define the VPN settings interface
+// Define the VPN settings interface - align with settingsApi.ts
 export interface VpnSettings {
   autoConnect: boolean;
   killSwitch: boolean;
   dnsLeakProtection: boolean;
   splitTunneling: boolean;
-  excludedApps?: string[]; // Changed to optional to match settingsApi.ts
+  excludedApps?: string[]; // Optional to match settingsApi.ts
   notifications: boolean;
-  theme: 'light' | 'dark' | 'system';
+  theme: 'light' | 'dark' | 'system'; // Restrict to only these values
   ipv6Protection: boolean;
 }
 
