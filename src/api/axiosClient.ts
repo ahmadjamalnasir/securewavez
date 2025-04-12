@@ -41,6 +41,13 @@ interface ApiErrorResponse {
 axiosClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError<ApiErrorResponse>) => {
+    // Check for network errors
+    if (error.code === 'ERR_NETWORK') {
+      toast.error('Network error: Unable to connect to the server');
+      console.error('Network error details:', error);
+      return Promise.reject(error);
+    }
+    
     const statusCode = error.response?.status;
     
     // Handle authentication errors

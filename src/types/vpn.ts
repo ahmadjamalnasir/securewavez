@@ -42,7 +42,7 @@ export interface VpnSettings {
   splitTunneling: boolean;
   excludedApps: string[];
   notifications: boolean;
-  theme: string;
+  theme: 'light' | 'dark' | 'system';
   ipv6Protection: boolean;
 }
 

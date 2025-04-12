@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import GoogleIcon from './GoogleIcon';
+import { toast } from 'sonner';
 
 interface LoginFormProps {
   setForgotPasswordOpen: (open: boolean) => void;
@@ -24,20 +25,27 @@ const LoginForm = ({ setForgotPasswordOpen }: LoginFormProps) => {
     
     // Simple validation
     if (!loginForm.email || !loginForm.password) {
+      toast.error('Please enter both email and password');
       return;
     }
     
-    // Call the login method from AuthContext
-    await login({
-      email: loginForm.email,
-      password: loginForm.password
-    });
+    try {
+      // Call the login method from AuthContext
+      await login({
+        email: loginForm.email,
+        password: loginForm.password
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      // Error is handled by the API service, but we can provide a fallback message
+      toast.error('Unable to connect to authentication service. Please try again later.');
+    }
   };
   
   const handleGoogleSignIn = () => {
     // This would integrate with the Google OAuth API
     // For now, it's just a placeholder
-    alert('Google Sign In is not implemented yet');
+    toast.info('Google Sign In is not implemented yet');
   };
 
   return (

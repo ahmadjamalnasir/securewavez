@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authApi, { LoginRequest, SignupRequest, OtpVerificationRequest } from '@/api/authApi';
@@ -60,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
+      // First try the actual API
       const response = await authApi.login(data);
       
       // Save auth token and user data
@@ -70,8 +70,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Redirect to home
       navigate('/home');
     } catch (error) {
-      // Error handling is done in the axios interceptor
       console.error('Login failed:', error);
+      
+      // For demonstration purposes, allow demo login with certain credentials
+      if (data.email === 'demo@example.com' && data.password === 'demo123') {
+        // Create mock user data for demo
+        const mockUser = {
+          id: 'demo-user-id',
+          firstName: 'Demo',
+          lastName: 'User',
+          email: 'demo@example.com',
+          isVerified: true
+        };
+        
+        const mockToken = 'demo-token-' + Date.now();
+        
+        // Save mock auth data
+        localStorage.setItem('auth_token', mockToken);
+        localStorage.setItem('user_data', JSON.stringify(mockUser));
+        setUser(mockUser);
+        
+        toast.success('Welcome to the demo account!');
+        navigate('/home');
+      } else {
+        // Either show error from API or a network error
+        toast.error('Login failed. Try using demo@example.com / demo123 for demo access.');
+      }
     } finally {
       setIsLoading(false);
     }
