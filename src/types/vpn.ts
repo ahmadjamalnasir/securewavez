@@ -40,7 +40,7 @@ export interface VpnSettings {
   killSwitch: boolean;
   dnsLeakProtection: boolean;
   splitTunneling: boolean;
-  excludedApps: string[];
+  excludedApps?: string[]; // Changed to optional to match settingsApi.ts
   notifications: boolean;
   theme: 'light' | 'dark' | 'system';
   ipv6Protection: boolean;

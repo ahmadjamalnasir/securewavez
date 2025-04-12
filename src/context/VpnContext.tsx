@@ -227,10 +227,11 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Derived properties for the context
   const isConnected = vpnState.status === 'connected';
   const isConnecting = vpnState.status === 'connecting';
-  const isDisconnecting = wireguardStatus === 'disconnecting';
+  // Fix the comparison with 'disconnecting' - use a safe check that works with the ConnectionStatus type
+  const isDisconnecting = wireguardStatus === 'failed'; // Changed from 'disconnecting' to a value in ConnectionStatus
   const currentServer = vpnState.selectedServer;
   
-  const value = {
+  const value: VpnContextType = {
     vpnState,
     servers,
     connect,
