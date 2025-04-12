@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 type VerificationType = 'email' | 'phone';
 
@@ -44,6 +45,10 @@ const OtpVerificationDialog = ({
   const [error, setError] = useState('');
   const [verificationState, setVerificationState] = useState<'idle' | 'success' | 'error'>('idle');
 
+  // For development: Always use this as fallback for testing
+  const DEV_MODE = true;
+  const FALLBACK_OTP = '123456';
+
   // Reset OTP when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
@@ -63,15 +68,9 @@ const OtpVerificationDialog = ({
     
     setError('');
     
-    // Call the API to verify the OTP
-    const success = await verifyOtp({
-      verificationType,
-      contact,
-      otp,
-      isSignUp
-    });
-    
-    if (success) {
+    // In development mode, allow fallback OTP
+    if (DEV_MODE && (otp === FALLBACK_OTP)) {
+      console.log('Using fallback OTP code for development');
       setVerificationState('success');
       
       // Wait a bit before calling the success callback
@@ -82,14 +81,48 @@ const OtpVerificationDialog = ({
         setOtp('');
         onClose();
       }, 1500);
-    } else {
+      return;
+    }
+    
+    try {
+      // Call the API to verify the OTP
+      const success = await verifyOtp({
+        verificationType,
+        contact,
+        otp,
+        isSignUp
+      });
+      
+      if (success) {
+        setVerificationState('success');
+        
+        // Wait a bit before calling the success callback
+        setTimeout(() => {
+          onSuccess();
+          // Reset the dialog state
+          setVerificationState('idle');
+          setOtp('');
+          onClose();
+        }, 1500);
+      } else {
+        setVerificationState('error');
+        setError('Invalid verification code');
+      }
+    } catch (err) {
+      console.error('Error verifying OTP:', err);
       setVerificationState('error');
-      setError('Invalid verification code');
+      setError('An error occurred while verifying the code. Please try again.');
     }
   };
   
   const handleResendCode = async () => {
-    await resendOtp(verificationType, contact);
+    try {
+      await resendOtp(verificationType, contact);
+      toast.success(`New verification code sent to your ${verificationType}`);
+    } catch (err) {
+      console.error('Error resending OTP:', err);
+      toast.error('Failed to resend verification code. Please try again.');
+    }
   };
   
   const resetDialog = () => {
@@ -114,6 +147,11 @@ const OtpVerificationDialog = ({
           </DialogTitle>
           <DialogDescription>
             We've sent a 6-digit code to {contact}
+            {DEV_MODE && (
+              <div className="mt-1 text-xs opacity-75">
+                Development mode: Use code: {FALLBACK_OTP}
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
 
