@@ -1,13 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { VpnState, Server, VpnContextType } from '@/types/vpn';
+import { VpnState, Server, VpnContextType, ConnectionStats, VpnSettings } from '@/types/vpn';
 import { sampleServers } from '@/data/servers';
 import { showNotification, getBestServer } from '@/utils/vpnUtils';
 import { toast } from 'sonner';
 import { useWireGuard } from '@/hooks/use-wireguard';
-import { ConnectionStats } from '@/types/wireguard';
 import vpnApi from '@/api/vpnApi';
 import { useQuery } from '@tanstack/react-query';
+import { useSettings } from '@/hooks/use-settings';
 
 // Create context with default values
 const VpnContext = createContext<VpnContextType | undefined>(undefined);
@@ -26,11 +26,12 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     favoriteServers: []
   });
   
+  const { settings, updateSettings } = useSettings();
+  
   // Fetch servers using React Query - fixed the useQuery configuration
   const { data: serversData, isLoading: serversLoading } = useQuery({
     queryKey: ['vpnServers'],
     queryFn: () => vpnApi.getServers(),
-    // Error handling moved to onSettled with meta option
     initialData: import.meta.env.DEV ? sampleServers : undefined,
     meta: {
       onError: (error: Error) => {
@@ -53,14 +54,17 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Initialize the smart server
   const [smartServer, setSmartServer] = useState<Server>(getBestServer(servers));
 
+  // Add state for connection stats
+  const [connectionStats, setConnectionStats] = useState<ConnectionStats | null>(null);
+
   // Load favorite servers from localStorage on mount
   useEffect(() => {
     try {
       const savedFavorites = localStorage.getItem('vpnFavoriteServers');
       if (savedFavorites) {
         const parsedFavorites = JSON.parse(savedFavorites);
-        setVpnState(prev => ({
-          ...prev,
+        setVpnState(prevState => ({
+          ...prevState,
           favoriteServers: parsedFavorites
         }));
       }
@@ -102,8 +106,16 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ping: wireguardStats.latency,
         dataUsed: calculateDataUsed(wireguardStats)
       }));
+      
+      // Update connection stats
+      setConnectionStats({
+        uploadBytes: wireguardStats.bytesSent,
+        downloadBytes: wireguardStats.bytesReceived,
+        latency: wireguardStats.latency,
+        uptime: Date.now() - vpnState.connectionTime
+      });
     }
-  }, [wireguardStats]);
+  }, [wireguardStats, vpnState.connectionTime]);
 
   // Simulate loading initial data
   useEffect(() => {
@@ -195,10 +207,28 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   
   // Helper function to calculate total data used
-  const calculateDataUsed = (stats: ConnectionStats): number => {
+  const calculateDataUsed = (stats: any): number => {
     // Convert bytes to MB
     return (stats.bytesReceived + stats.bytesSent) / (1024 * 1024);
   };
+  
+  // Function to update VPN settings
+  const updateVpnSettings = async (newSettings: Partial<VpnSettings>): Promise<void> => {
+    try {
+      // In a real implementation, this would call an API to update settings
+      await updateSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to update VPN settings:', error);
+      toast.error('Failed to update VPN settings');
+      throw error;
+    }
+  };
+  
+  // Derived properties for the context
+  const isConnected = vpnState.status === 'connected';
+  const isConnecting = vpnState.status === 'connecting';
+  const isDisconnecting = wireguardStatus === 'disconnecting';
+  const currentServer = vpnState.selectedServer;
   
   const value = {
     vpnState,
@@ -208,7 +238,15 @@ export const VpnProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     selectServer,
     isLoading: isLoading || serversLoading,
     smartServer,
-    toggleFavorite
+    toggleFavorite,
+    // Add the new derived properties to the context value
+    isConnected,
+    isConnecting,
+    isDisconnecting,
+    currentServer,
+    connectionStats,
+    vpnSettings: settings, // Use settings from useSettings hook
+    updateVpnSettings
   };
   
   return <VpnContext.Provider value={value}>{children}</VpnContext.Provider>;

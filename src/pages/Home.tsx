@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -61,7 +62,7 @@ const Home = () => {
     }
     
     try {
-      await connect(currentServer.id);
+      await connect();
     } catch (error: any) {
       toast({
         title: "Connection Failed",
@@ -121,7 +122,7 @@ const Home = () => {
       </div>
       
       <AdBanner 
-        size="medium" // Changed from "md" to "medium"
+        size="medium"
         className="mt-6 mx-auto"
       />
       
@@ -250,7 +251,7 @@ const Home = () => {
       </div>
       
       <AdBanner 
-        size="large" // Changed from "lg" to "large"
+        size="large"
         className="mt-8 mx-auto"
       />
       

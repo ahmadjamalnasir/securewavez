@@ -23,6 +23,7 @@ const AdBanner: React.FC<AdBannerProps> = ({
     queryKey: ['subscription'],
     queryFn: async () => {
       try {
+        // Changed from getCurrentSubscription to getDetails
         return await apiService.subscription.getDetails();
       } catch (error) {
         console.error('Error fetching subscription:', error);
